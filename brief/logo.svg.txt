@@ -1,0 +1,7 @@
+<svg class="logomark" width="28" height="28" viewBox="0 0 32 32" role="img" aria-label="KodKent logosu">
+  <polygon points="16,2 29,9 16,16 3,9" fill="var(--accent)"/>
+  <polygon points="3,9 16,16 16,30 3,23" fill="var(--cobalt)"/>
+  <polygon points="29,9 16,16 16,30 29,23" fill="var(--accent-ink)"/>
+  <path d="M9.5 12.2 L9.5 24.2 M9.5 18 L14 13.2 M9.5 18 L14 23.4" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
+<!-- Kullanım: üst şeritte <a class="brand"><svg…/> <span>KodKent</span></a>. Prototipte (tek tema) var(--accent)=#22C9CE, var(--cobalt)=#3F6FE0, var(--accent-ink)=#0E7E82 olarak sabitlenebilir. -->

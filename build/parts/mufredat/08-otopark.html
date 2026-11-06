@@ -1,0 +1,739 @@
+<!-- build_page.py ile üretildi -->
+<section id="otopark">
+<h2>Otopark: tam ayrıntı</h2>
+<p>Otopark hem katalogun ilk işletmesi hem şemanın örneğidir: Hasan Abi'nin cümlesi birebir, ardından Gereksinim Netleştirme, Sözleşme Kartı, ücret kademesi, kod, testler ve gerçek çalıştırma çıktısı. L2–L5 kapalıdır.</p>
+<h3 id="b5-3-otopark-l1-den-l5-e-tam-ayrinti">3. Otopark — L1'den L5'e tam ayrıntı</h3>
+<p>Otopark KANON'un kanonik ilk işletmesidir (300 B, Sev. 3 + Ruhsat 3/3, 5 seviye). L1 burada sıfır hata toleransıyla belgelenir: müşteri cümlesi, netleştirme diyaloğu, sözleşme, testler, referans çözüm, Savunma, hatalar, ipuçları, Usta Yorumu ve mutasyonlar. L2–L5 daha kısa ama aynı şablonla verilir. Her kod parçası ve her beklenen değer §9'daki çalıştırmada doğrulanmıştır.</p>
+<h4 id="b5-3-1-is-emri-hasan-abi-nin-istegi">3.1 İş Emri: Hasan Abi'nin isteği</h4>
+<p>Tapu alınır alınmaz oyuncunun <strong>İş Emri</strong> kartı (ekran #11) Hasan Abi'nin elinden gelir. Metin KANON §5.1'dir ve hiçbir yüzeyde kısaltılmaz ya da düzeltilmez:</p><blockquote class="musteri"><p>"2 saatten az kalanlar: saati 100 TL. 2–6 saat arası: her saat 40 TL. 6–24 saat arası kalanlar: günlük 250 TL. Bunu hesaplayan bir sistem istiyorum."</p><cite>Hasan Abi</cite></blockquote><p>Cümle bilerek eksiktir: saat yukarı mı yuvarlanır? Tam 2 ve tam 6 saat hangi dilimde? 24 saati aşan ne öder? Süre eksi gelebilir mi? Bu eksikler <strong>Gereksinim Netleştirme</strong> ile kapanır ve <strong>Sözleşme Kartı</strong>'na yazılır. Kodu yazmadan önce müşteriye sormak bu işletmenin ilk dersidir (00-fikir §2: belirsizlikler bir "öğretim anı"dır).</p><p>Akış KANON §7'dir: Tapu → İş Emri → Gereksinim Netleştirme → Kod → Müfettiş → Savunma → Açılış.</p><div class="tablewrap"><table><thead><tr><th>Adım</th><th>Ekran</th><th class="num">Tipik süre</th><th>Çıktı ve kazanç</th></tr></thead><tbody><tr><td>İş Emri</td><td>#11 İş Emri</td><td class="num">1 dk</td><td>Hasan Abi'nin cümlesi, "Müşteriye Sor" paneli</td></tr><tr><td>Gereksinim Netleştirme</td><td>#11 İş Emri</td><td class="num">≈4 dk</td><td>En az 4 soru; açılan maddelerle Sözleşme Kartı; isteğe bağlı Keskin Göz (+50 XP)</td></tr><tr><td class="nw">Kod</td><td>#12 İşletme Editörü</td><td class="num">≈15 dk</td><td>6 açık test yeşil; ipucu merdiveni serbest; ipuçsuz ilk deneme için Berrak Zihin +%15</td></tr><tr><td class="nw">Müfettiş</td><td>#12 İşletme Editörü</td><td class="num">≈1 dk</td><td>14 gizli + 6 tohumlu vaka; kategori balonları</td></tr><tr><td class="nw">Savunma</td><td>#13 Savunma</td><td class="num">≈3 dk</td><td>Kurul'un seçtiği satır, Hasan Abi'nin sorusu; ≥70 → Açılış</td></tr><tr><td class="nw">Açılış</td><td>#10 İşletme Sokağı</td><td class="num nw">—</td><td>300 XP; Açılış Kurdelesi 100 B (B2 §5.2); gelir başlar</td></tr></tbody></table></div><p>Toplam ≈25 dakikadır (A-vizyon-FINAL §3). Savunma başarısız ya da gizli test kalırsa işletme <strong>Deneme</strong> modunda (%50 gelir) açılır; 24 saat sonra yeni Savunma hakkı doğar (KANON §4).</p>
+<h4 id="b5-3-2-gereksinim-netlestirme-diyalogu">3.2 Gereksinim Netleştirme diyaloğu</h4>
+<p>Oyuncu "Müşteriye Sor" panelinde <strong>8 hazır soru</strong> ve bir serbest metin kutusu görür. Kodlamaya geçmek için <strong>en az 4 soru</strong> sormak zorundadır (KANON §10); üst sınır, ücret ya da süre baskısı yoktur. Cevaplar sabittir ve Hasan Abi'nin ağzından yazılmıştır; ilk beşi <code>A-vizyon-FINAL.md</code> §7'den aynen alınmıştır.</p><div class="tablewrap"><table><thead><tr><th>#</th><th>Oyuncunun sorusu</th><th>Hasan Abi'nin cevabı</th><th>Açtığı madde</th><th>Öğretim amacı</th></tr></thead><tbody><tr><td class="nw">S1</td><td>"1 saat 10 dakika kalan ne öder?"</td><td>"Başlayan saat tam sayılır; 2 saatten az kaldı: 200."</td><td>2, 3</td><td>yukarı yuvarlama; dilimi ham sürenin belirlemesi</td></tr><tr><td class="nw">S2</td><td>"Tam 2 saat kalan ne öder?"</td><td>"O artık 2–6 dilimi: 2 × 40 = 80."</td><td class="nw">2</td><td>alt sınır dâhil</td></tr><tr><td class="nw">S3</td><td>"Tam 6 saat kalan ne öder?"</td><td>"Hâlâ 2–6 dilimi: 240; 6'yı geçen güne girer."</td><td class="nw">2</td><td>üst sınır dâhil</td></tr><tr><td class="nw">S4</td><td>"24 saati aşan ne öder?"</td><td>"Her başlayan gün 250."</td><td class="nw">4</td><td>çok günlü kalış (1.441 → 500)</td></tr><tr><td class="nw">S5</td><td>"Girip aynı dakika çıkan ne öder?"</td><td>"Ödemez. Bariyer eksi süre göndermez."</td><td class="nw">1</td><td>sıfır girdisi; girdi ≥ 0</td></tr><tr><td class="nw">S6</td><td>"Süreyi nasıl göndereceksin: dakika mı, saat mi, kesirli mi?"</td><td>"Dakika, tam sayı. Kesir yok."</td><td>1, 5</td><td>girdi türü (<code>int</code>)</td></tr><tr><td class="nw">S7</td><td>"Ücret kuruşlu olabilir mi?"</td><td>"TL, tam sayı. Kuruş yok."</td><td class="nw">5</td><td>dönüş türü (<code>int</code>)</td></tr><tr><td class="nw">S8</td><td>"Tam 24 saat kalan ne öder?"</td><td>"Bir gün: 250. Bir dakika fazlası ikinci gün."</td><td class="nw">4</td><td>gün sınırı (1.440)</td></tr></tbody></table></div><p><strong>Maddeler soruyla açılır.</strong> Sözleşme Kartı, editör açıldığında yalnızca iskeletten gelen imza satırını (Madde 5'in imza yarısı) gösterir; diğer maddeler karttaki soluk satırlardır ("Bu madde için müşteriye sormadın"). Oyuncu bir soru sorduğunda ilgili madde parlayarak karta yazılır. Böylece "sormadan yazan iki kere yazar" (Usta Defne'nin cümlesi) bir cümle olmaktan çıkar, ölçülür bir sonuç doğurur: sorulmayan maddenin gizli testleri kırmızı çıkar ve Müfettiş balonu o bölgeyi söyler (§7.1). Açık testler de ipucudur (120 → 80, 121 → 120, 1.441 → 500), ama gizli testlerin tamamı açık testlerden çıkarılamaz: 0 dakika (G1), saat başı komşuluğu (G3, G4), gün başı komşuluğu (G10, G11) ve 2.880/2.881 yalnızca sorarak ya da sözleşmeyi dikkatle okuyarak bulunur.</p><p><strong>Dört sorudan sonra.</strong> "Koda geç" düğmesi açılır; Usta Defne kenardan "Müşteriye sormadan kod yazan, iki kere yazar" der (A-vizyon-FINAL §7) ve karar oyuncuya kalır; düğme kilitlenmez.</p><p><strong>Serbest metin.</strong> <code>claude-haiku-5-5</code> sınıflandırıcı mesajı en yakın hazır soruya eşler (≈0,0001 $); eşleşme yoksa Hasan Abi "Onu bilmiyorum evladım, şunlara bak" der. Oyuncunun metni veridir, talimat değildir (KANON §9).</p><p><strong>Keskin Göz.</strong> Madde 6 (119 → 200, 120 → 80 müşterinin bilinçli kararıdır) hiçbir hazır soruda yoktur ve Usta bunu söylemez (A-vizyon-FINAL §7; ilk 1.000 oyuncuda A/B). Anomaliyi fark eden oyuncu serbest metinle sorar; tetik iki yoldan biridir: (a) aynı mesajda 119 ve 120 sayıları geçer; (b) sınıflandırıcı "uzun kalan daha az ödüyor" anlamını güven ≥ 0,8 ile bulur. Hasan Abi'nin cevabı sabittir: "Biliyorum, uzun kalan kazanıyor; açılış kampanyası böyle." Oyuncu <strong>Keskin Göz</strong> rozetini ve +50 XP'yi bir kez alır; Madde 6 karta yazılır. Ders: gereksinimi görünür biçimde sorgula, müşterinin kararına saygı duy. Rozet yalnızca kodlamadan önce serbest metinle sorana verilir; Savunma'daki D3 sorusu anomaliyi herkese gösterdiği için rozet vermez (öğretir, ödüllendirmez).</p><p>Örnek diyalog (kısaltılmış):</p><div class="chat"><div class="bubble usta"><span class="who">Hasan Abi</span>İş emri bu evladım. Aklına takılan olursa sor.</div><div class="bubble oyuncu"><span class="who">Oyuncu (S1)</span>1 saat 10 dakika kalan ne öder?</div><div class="bubble usta"><span class="who">Hasan Abi</span>Başlayan saat tam sayılır; 2 saatten az kaldı: 200.</div><div class="bubble oyuncu"><span class="who">Oyuncu (serbest)</span>119 dakika 200 TL ama 120 dakika 80 TL, bu doğru mu?</div><div class="bubble usta"><span class="who">Hasan Abi</span>Biliyorum, uzun kalan kazanıyor; açılış kampanyası böyle.</div><div class="bubble sistem"><span class="who">Sistem</span>Keskin Göz rozeti kazandın, +50 XP. Sözleşme Kartı'na madde 6 yazıldı.</div><div class="bubble usta"><span class="who">Usta Defne (kenardan)</span>Müşterinin kararına saygı duy; ama soruyu sorman doğruydu.</div></div>
+<h4 id="b5-3-3-sozlesme-karti-kanon-5-1-aynen">3.3 Sözleşme Kartı (KANON §5.1, aynen)</h4>
+<div class="tablewrap"><table><thead><tr><th class="num">Madde</th><th>Kural</th><th>Açan sorular</th></tr></thead><tbody><tr><td class="num nw">1</td><td>Girdi dakika cinsinden tam sayı, ≥ 0 (bariyer negatif göndermez); 0 → 0 TL</td><td>S5, S6</td></tr><tr><td class="num nw">2</td><td>Dilimi <strong>ham kalış süresi</strong> belirler: <code>dakika &lt; 120</code> → 1. dilim; <code>120 ≤ dakika ≤ 360</code> → 2. dilim (sınırlar dâhil); <code>dakika &gt; 360</code> → günlük</td><td>S1, S2, S3</td></tr><tr><td class="num nw">3</td><td>Başlayan saat tam sayılır: <code>saat = ceil(dakika / 60)</code>; 1. dilim <code>saat × 100</code>, 2. dilim <code>saat × 40</code></td><td class="nw">S1</td></tr><tr><td class="num nw">4</td><td>24 saati aşan kalış: her <strong>başlayan gün</strong> 250 (<code>gun = ceil(dakika / 1440)</code>, <code>gun × 250</code>)</td><td>S4, S8</td></tr><tr><td class="num nw">5</td><td>İmza: <code>public static int Otopark.UcretHesapla(int dakika)</code>; dönüş TL, tam sayı</td><td>iskelet, S6, S7</td></tr><tr><td class="num nw">6</td><td>Anomali (119 → 200, 120 → 80) müşterinin bilinçli kararıdır; fark eden oyuncu <strong>Keskin Göz</strong> (+50 XP)</td><td>serbest metin</td></tr></tbody></table></div>
+<h4 id="ucret-kademesi">Ücret kademesi grafiği</h4><figure><div id="c-ucret"></div><figcaption>Ücret süreyle düzgün artmaz: 2 saatte (120 dk) 80 TL'ye <em>düşer</em>, 6 saati (360 dk) aşınca günlüğe geçer, her başlayan gün 250 TL ekler. Noktalar KANON §5.1'in 20 testiyle doğrulanmış kuraldan türetilmiştir.</figcaption></figure><figure><div id="c-ucret-zoom"></div><figcaption>İlk 12 saatin yakın görünümü: 119 dk 200 TL, 120 dk 80 TL öder.</figcaption></figure><div class="callout amber"><p><strong>Anomali (Sözleşme madde 6).</strong> 119 dakika kalan 200 TL, 120 dakika kalan 80 TL öder. Bu, müşterinin bilinçli kararıdır; fark eden oyuncu <strong>Keskin Göz</strong> rozetiyle +50 XP kazanır.</p></div>
+<h4 id="b5-3-4-imza-ve-iskelet">3.4 İmza ve iskelet</h4>
+<p>Editör şu iskeletle açılır; oyuncu yalnızca işaretli aralığı yazar. Sınıf adı, metot adı ve parametre adı değişirse hakemin derleme adımı Türkçe uyarı verir ("İmza sözleşmesi: <code>UcretHesapla(int dakika)</code> olmalı").</p><pre class="code" data-lang="cs"><code>// İş emri #1 — Otopark (Çarşı) — Müşteri: Hasan Abi
+public static class Otopark
+{
+    // dakika: aracın içeride kaldığı toplam süre (0 veya daha büyük)
+    // dönüş: ödenecek ücret, TL (tam sayı)
+    public static int UcretHesapla(int dakika)
+    {
+        //#BASLA
+        // kodun buraya
+        //#BITIS
+    }
+}</code></pre>
+<h4 id="b5-3-5-test-vakalari-6-acik-14-gizli-6-tohumlu-26">3.5 Test vakaları: 6 açık + 14 gizli + 6 tohumlu = 26</h4>
+<p>KANON §5.1'in tablosu aşağıda birebir yer alır; "Kategori" sütunu Müfettiş balonunun söyleyeceği bölgedir (§7.1), "Gerekçe" sütunu testin neden orada durduğunu ve hangi hatayı yakaladığını söyler (mutasyon kodları §3.11'dedir).</p><p><strong>Açık testler (6).</strong> Oyuncu girdiyi, beklenen değeri ve gerçek değeri görür.</p><div class="tablewrap"><table><thead><tr><th>Id</th><th class="num">Dakika</th><th class="num">TL</th><th>Kategori</th><th>Gerekçe</th></tr></thead><tbody><tr><td class="nw">A1</td><td class="num nw">30</td><td class="num nw">100</td><td class="nw"><code>iki-saatten-az</code></td><td>Başlayan 1. saat; en kısa yoldan 1. dilim</td></tr><tr><td class="nw">A2</td><td class="num nw">61</td><td class="num nw">200</td><td class="nw"><code>iki-saatten-az</code></td><td>Başlayan 2. saat ama dilim hâlâ "2 saatten az"; dilimi yuvarlanmış saatle seçen çözümü kırar (M5)</td></tr><tr><td class="nw">A3</td><td class="num nw">120</td><td class="num nw">80</td><td><code>iki-saat-civari</code></td><td>Tam 2 saat: 2. dilimin alt sınırı dâhil; <code>&lt;=</code> tuzağı (M1, E5)</td></tr><tr><td class="nw">A4</td><td class="num nw">121</td><td class="num nw">120</td><td><code>iki-saat-civari</code></td><td>Başlayan 3. saat, 3 × 40; 2. dilimde yukarı yuvarlama (M7, E1)</td></tr><tr><td class="nw">A5</td><td class="num nw">361</td><td class="num nw">250</td><td><code>alti-saat-civari</code></td><td>6 saati bir dakika aştı → günlük; sınırın öte yakası</td></tr><tr><td class="nw">A6</td><td class="num nw">1.441</td><td class="num nw">500</td><td class="nw"><code>bir-gun-civari</code></td><td>İkinci gün başladı; "günlük sabit 250" hatasını kırar (M6, E7)</td></tr></tbody></table></div><p><strong>Gizli testler (14).</strong> Yalnızca Müfettiş çalıştırır; oyuncu sayıyı değil kategoriyi görür.</p><div class="tablewrap"><table><thead><tr><th>Id</th><th class="num">Dakika</th><th class="num">TL</th><th>Kategori</th><th>Gerekçe</th></tr></thead><tbody><tr><td class="nw">G1</td><td class="num nw">0</td><td class="num nw">0</td><td class="nw"><code>hemen-cikanlar</code></td><td>Madde 1: 0 → 0; "en az 1 saat" varsayımını yakalar (E10). Gelir trafiği 0 dakikalık araç üretmediği için yalnızca bu test görür</td></tr><tr><td class="nw">G2</td><td class="num nw">1</td><td class="num nw">100</td><td class="nw"><code>hemen-cikanlar</code></td><td>En küçük pozitif kalış; yukarı yuvarlama yoksa 0 TL döner (E1, E3)</td></tr><tr><td class="nw">G3</td><td class="num nw">59</td><td class="num nw">100</td><td class="nw"><code>iki-saatten-az</code></td><td>Saat başından bir önce; <code>dakika / 60</code> (taban) 0 TL verir. <code>+ 60</code> hatasında hâlâ doğrudur, o hatayı G4 ayırır</td></tr><tr><td class="nw">G4</td><td class="num nw">60</td><td class="num nw">100</td><td class="nw"><code>iki-saatten-az</code></td><td>Tam 1 saat: <code>(dakika + 60) / 60</code> bunu 2 saat sayar (M3)</td></tr><tr><td class="nw">G5</td><td class="num nw">119</td><td class="num nw">200</td><td><code>iki-saat-civari</code></td><td>Anomali tepesi: 119 → 200; dilimi saate göre seçen çözüm 80 verir (M5, E4)</td></tr><tr><td class="nw">G6</td><td class="num nw">180</td><td class="num nw">120</td><td class="nw"><code>iki-alti-arasi</code></td><td>2. dilimde tam saat katı; <code>+ 60</code> hatası 160 verir (M3)</td></tr><tr><td class="nw">G7</td><td class="num nw">359</td><td class="num nw">240</td><td><code>alti-saat-civari</code></td><td>2. dilimin son dakikalarından; <code>dakika / 60 × 40</code> 200 verir (M7)</td></tr><tr><td class="nw">G8</td><td class="num nw">360</td><td class="num nw">240</td><td><code>alti-saat-civari</code></td><td>Üst sınır dâhil: 6 × 40, günlük 250 değil (M2, M8)</td></tr><tr><td class="nw">G9</td><td class="num nw">720</td><td class="num nw">250</td><td class="nw"><code>gunluk-tarife</code></td><td>Günlük dilimin içi; gün yuvarlamasında taban (E8) 0 TL verir</td></tr><tr><td class="nw">G10</td><td class="num nw">1.439</td><td class="num nw">250</td><td class="nw"><code>bir-gun-civari</code></td><td>Günün son dakikası; gün tabanı yine 0</td></tr><tr><td class="nw">G11</td><td class="num nw">1.440</td><td class="num nw">250</td><td class="nw"><code>bir-gun-civari</code></td><td>Tam gün katı; <code>dakika / 1440 + 1</code> 500 verir (M4): Müfettiş'in klasik dosyası</td></tr><tr><td class="nw">G12</td><td class="num nw">2.880</td><td class="num nw">500</td><td class="nw"><code>gunu-asanlar</code></td><td>Tam 2 gün; M4 750 verir</td></tr><tr><td class="nw">G13</td><td class="num nw">2.881</td><td class="num nw">750</td><td class="nw"><code>gunu-asanlar</code></td><td>3. gün başladı; sabit günlük (M6) 250 verir</td></tr><tr><td class="nw">G14</td><td class="num nw">100.000</td><td class="num nw">17.500</td><td class="nw"><code>gunu-asanlar</code></td><td>Büyük girdi: <code>(100000 + 1439) / 1440 = 70</code>; sabit günlük (M6) ve <code>Math.Round</code> (E3: 17.250) burada kırılır</td></tr></tbody></table></div><p>Sekiz kategori ve aralıkları §7.1'dedir; tablodaki kategori adları JSON'daki <code>etiket</code> değerleriyle aynıdır.</p><p><strong>Tohumlu testler (6).</strong> Kural ve üreteç §1.7'dedir. Örnek: oyuncu <code>ayse_kod</code>, gün 2026-11-02, tohum <code>0x9D8D74B21D8FC748</code> (ham çıktı §9):</p><div class="tablewrap"><table><thead><tr><th>Id</th><th>Katman</th><th class="num">Dakika</th><th class="num">TL</th></tr></thead><tbody><tr><td class="nw">T1</td><td class="nw"><code>dilim-1-ic</code></td><td class="num nw">34</td><td class="num nw">100</td></tr><tr><td class="nw">T2</td><td class="nw"><code>dilim-2-ic</code></td><td class="num nw">218</td><td class="num nw">160</td></tr><tr><td class="nw">T3</td><td class="nw"><code>gunluk-ic</code></td><td class="num nw">1.205</td><td class="num nw">250</td></tr><tr><td class="nw">T4</td><td class="nw"><code>cok-gunlu-ic</code></td><td class="num nw">18.539</td><td class="num nw">3.250</td></tr><tr><td class="nw">T5</td><td class="nw"><code>saat-siniri</code></td><td class="num nw">240</td><td class="num nw">160</td></tr><tr><td class="nw">T6</td><td class="nw"><code>gun-siniri</code></td><td class="num nw">14.401</td><td class="num nw">2.750</td></tr></tbody></table></div><p>Her tohumlu vakanın gerekçesi, katmanının §1.7 tablosundaki "yakaladığı hata türü" sütunudur (T1 ve T2 floor-bölme ve dilim hatalarını, T3 ve T4 gün hesabını, T5 ve T6 tam kat komşuluğunu yoklar). Aynı gün başka oyuncular başka kümeler görür: <code>mert.k</code> [75, 190, 1.306, 19.448, 239, 5.760], <code>deniz07</code> [69, 321, 953, 5.513, 300, 7.199]; <code>ayse_kod</code> ertesi gün [94, 332, 776, 3.521, 240, 5.761] alır.</p>
+<h4 id="b5-3-6-referans-cozum">3.6 Referans çözüm</h4>
+<p>Aşağıdaki kod KANON §5.1'in referans çözümüdür, karakter karakter aynıdır; yalnızca sunucuda durur. Çalıştırma sonuçları: 20 sabit vaka KANON tablosuyla birebir geçti; 10.000 oyuncunun tohumlu kümesinde bağımsız (döngü tabanlı) ikinci bir çözümle uyuştu; beş alternatif çözüm 0–300.000 dakika süpürmesinde referansla sıfır sapmayla uyuştu (§8.3).</p><pre class="code" data-lang="cs"><code>public static int UcretHesapla(int dakika)
+{
+    if (dakika &lt;= 0) return 0;
+    int saat = (dakika + 59) / 60;        // başlayan saat
+    if (dakika &lt; 120) return saat * 100;  // 2 saatten az kalanlar
+    if (dakika &lt;= 360) return saat * 40;  // 2–6 saat, sınırlar dâhil
+    int gun = (dakika + 1439) / 1440;     // başlayan gün
+    return gun * 250;
+}</code></pre><p>Satır satır: <code>dakika &lt;= 0</code> Madde 1'i kodlar (girdi ≥ 0 sözleşmesi altında davranışı değiştirmez, çünkü <code>(0 + 59) / 60 = 0</code>; satır negatif kayıtlara ve niyet belirtmeye hizmet eder, §3.11'deki eşdeğer mutant EQ1). <code>(dakika + 59) / 60</code> tam sayı bölmesiyle <code>ceil(dakika / 60)</code>'tır (Ders 1.2 kalıbı). <code>dakika &lt; 120</code> ve <code>dakika &lt;= 360</code> Madde 2'nin ham süre sınırlarıdır; <code>saat &lt;= 6</code> yazmak <code>dakika &lt;= 360</code> ile <strong>eşdeğerdir</strong> (EQ2) ama niyeti gizler, bu yüzden referans ham dakikayı kullanır. Son iki satır Madde 4'ün başlayan günüdür.</p><p><strong>Bilinen sınır.</strong> <code>dakika + 1439</code> ifadesi <code>int</code> taşar: <code>dakika = 2.147.482.209</code> için sonuç <strong>−372.827.000 TL</strong>'dir (§9). KANON v1 girdi için üst sınır koymaz; bu belge üst sınır olarak 10.000.000 dakikayı (≈19 yıl) önerir (Ek A). Sınır konana kadar hiçbir test bu bölgeyi sınamaz.</p>
+<h4 id="b5-3-7-savunma-sorulari">3.7 Savunma soruları</h4>
+<p>Tüm testler yeşil olunca <strong>Kurul</strong> oyuncunun kendi kodunda <code>satir_deseni</code> ile bir satır seçer ve soruyu <strong>Hasan Abi</strong>'nin ağzından sorar (KANON §10: Savunma). Açıklama kutusunun üstünde rubrik görünür (Doğruluk 50 / Tamlık 30 / Açıklık 20); ≥70 geçer, &lt;70 Deneme açılışıdır (KANON §9). Soru her zaman oyuncunun <strong>kendi</strong> satırı ve <strong>somut bir girdi</strong> üzerindendir; ezberlenmiş genel cevap işe yaramaz. Yapıştırma telemetrisi (AST benzerliği &gt; %95 ya da 30 sn altı yazım; KANON §9) Savunma'yı zorunlu kılar ve Bayt'ı Savunma sonrasına bırakır; ayrıntı §8.</p><p>Beş soru tanımlıdır (<code>min 4</code>). Kurul, oyuncunun kodunda eşleşen ilk deseni seçer; eşleşme yoksa D1'in genel sürümü sorulur.</p><p><strong>D1 — "121 dakika neden 120 TL? Hangi satır belirliyor?"</strong> Desen: <code>(&lt;=|&lt;)\s*360|\*\s*40</code>. Kabul: 121'in 2. dilimde (120–360) olduğunu söyler; başlayan saatin 3 olduğunu gösterir; 3 × 40 = 120 hesabını yapar. Ret: "Test böyle istiyor" gibi kodu açıklamayan cevap; dilimi yuvarlanmış saatten bulduğunu söylemek (ham süre ilkesini bilmediğini gösterir). Örnek iyi cevap: <em>"121 dakika 120'den büyük ve 360'tan küçük olduğu için 2. dilimde. Bu dilimde ücret başlayan saat × 40. 121 dakika 2 saati bir dakika geçtiği için 3. saat başlamış sayılıyor: (121 + 59) / 60 = 3. Yani 3 × 40 = 120. Dilimi seçen satır <code>if (dakika &lt;= 360)</code>, ücreti veren satır <code>return saat * 40;</code>."</em> Örnek puanlar: bu cevap 48 + 28 + 18 = <strong>94</strong>; "3 saat sayılıyor, 40 ile çarpılıyor" cevabı 40 + 18 + 16 = <strong>74</strong> (geçer, Tamlık'ta dilim açıklaması eksik); "Çünkü 121, 120'den büyük" cevabı 22 + 8 + 12 = <strong>42</strong> (kalır).</p><p><strong>D2 — "<code>(dakika + 59) / 60</code> ne işe yarıyor? Neden 59?"</strong> Desen: <code>\+\s*59</code>. Kabul: tam sayı bölmesinin küsuratı attığını söyler; 59 eklemenin artığı bir sonraki saate taşıdığını açıklar; örnek verir (60 → 1, 61 → 2). Ret: "Saati hesaplıyor" deyip yuvarlamayı anlatmayan cevap; 60 yerine neden 59 olduğunu açıklayamama. Örnek: <em>"Tam sayı bölmesi küsuratı atar, ben ise artan 1 dakika bile olsa bir sonraki saati saymak istiyorum. 59 eklersem 60'ın tam katlarında sonuç değişmez, bir fazlasında yükselir: (60 + 59) / 60 = 1, (61 + 59) / 60 = 2. 60 ekleseydim 60 dakika da 2 saat çıkardı."</em></p><p><strong>D3 — "119 dakika 200 TL ama 120 dakika 80 TL. Kodunda bunu hangi satır sağlıyor?"</strong> Desen: <code>&lt;\s*120</code>. Kabul: <code>dakika &lt; 120</code> satırını gösterir; anomaliyi müşterinin kararı olarak bilir (Madde 6); farkın 100 TL ile 40 TL birim fiyatından geldiğini söyler. Ret: 119'un neden 200 olduğunu hesaplayamama; "kodda hata var" diyerek sözleşmeyi suçlama. Örnek: <em>"119 dakika <code>dakika &lt; 120</code> koşuluna giriyor, yani 1. dilim: başlayan saat 2, 2 × 100 = 200. 120 dakika bu koşula girmiyor, 2. dilimin alt sınırı: 2 × 40 = 80. Hasan Abi bunu bilinçli istedi, sözleşmenin 6. maddesi."</em></p><p><strong>D4 — "1.440 dakika ile 1.441 dakika arasında kodun davranışı nasıl değişiyor?"</strong> Desen: <code>1439|1440</code>. Kabul: 1440 için gün sayısının 1, 1441 için 2 olduğunu hesaplar; 1439 eklemenin başlayan gün yuvarlaması olduğunu söyler. Ret: gün hesabını saat hesabıyla karıştırma; 1441 için 250 savunma. Örnek: <em>"(1440 + 1439) / 1440 = 1, yani 1 gün, 250 TL. (1441 + 1439) / 1440 = 2, ikinci gün başladı, 500 TL. 1439 eklemek, saat için 59 eklemenin günlük hâli."</em></p><p><strong>D5 — "<code>dakika &lt;= 0</code> satırını silsen 0 dakika için ne döner? Satır neden duruyor?"</strong> Desen: <code>&lt;=\s*0</code>. Kabul: 0 için saat = 0 ve 0 × 100 = 0 olduğunu hesaplar; satırın negatif girdiye karşı koruma ve niyet belirtme olduğunu söyler. Ret: "Silersem program çöker" (yanlış). Örnek: <em>"Silsem de 0 dönerdi: saat = (0 + 59) / 60 = 0, 0 × 100 = 0. Satır sözleşmedeki 'girdi ≥ 0' varsayımını koda yazıyor; negatif bir kayıt gelirse eksi ücret hesaplamak yerine 0 döndürüyor."</em></p><p><strong>Çözüm biçimine uyarlama.</strong> Tablo tabanlı ya da <code>switch</code> ifadeli çözümlerde (§8.3) <code>+ 59</code> deseni bulunmayabilir; Kurul bu durumda satırı değil değeri sorar: "Kodun 121 için kaç TL döndürüyor ve bu sayıyı hangi ifade ya da tablo satırı belirliyor?" Aynı rubrik uygulanır. Savunma sorusunun AI maliyeti Kurul kotasına sayılır; kota dolsa bile Savunma kilitlenmez, cevap kaydedilir ve gece Batch API ile puanlanır (KANON §9).</p>
+<details class="acc"><summary id="b5-3-8-yaygin-hatalar-13-ve-hangi-testlerin-kaldigi">3.8 Yaygın hatalar (13) ve hangi testlerin kaldığı</summary>
+<p>Aşağıdaki 13 hata Otopark L1'de beklenen öğrenci hatalarıdır. Hepsi çalıştırıldı; sütunlar ölçümdür, tahmin değildir. E4, E5, E6, E7 ve E9 aynı zamanda Hata Bildirimi mutasyonlarıdır (sırasıyla M5, M1, M2, M6, M4; §3.11): aynı satır bir gün oyuncunun kendi hatası, bir gün başkasının kodunda ayıklayacağı hata olarak karşısına çıkar.</p><p><em>Kalan açık</em>, oyuncunun editörde zaten gördüğü kırmızı kutulardır. <em>Kalan gizli</em> yalnızca Müfettiş'in gördüğüdür. <em>Tohumlu yakalama</em>, 10.000 sentetik oyuncudan kaçının altı tohumlu vakasının en az birinde hatanın göründüğünü verir.</p><div class="tablewrap"><table><thead><tr><th>Kod</th><th>Hata ve örnek satır</th><th>Oyuncu ne düşünür</th><th>Kalan açık</th><th>Kalan gizli</th><th class="num">Tohumlu yakalama</th><th>Usta'nın yönlendirmesi</th></tr></thead><tbody><tr><td class="nw">E1</td><td>Yukarı yuvarlama yok: <code>int saat = dakika / 60;</code></td><td>Saat zaten dakikanın 60'a bölümü</td><td>A1, A2, A4</td><td>G2, G3, G5, G7</td><td class="num nw">%100</td><td>61 dakikada saat kaç çıkıyor? Hasan Abi "başlayan saat" demişti; başlayan ne demek?</td></tr><tr><td class="nw">E2</td><td><code>Math.Ceiling</code> ama bölme önce tam sayıda: <code>(int)Math.Ceiling((double)(dakika / 60))</code></td><td>Ceiling yukarı yuvarlar, güvendeyim</td><td>A1, A2, A4, A5, A6</td><td>G2, G3, G5, G7, G9, G10, G13, G14</td><td class="num nw">%100</td><td>Parantezin içindeki bölme hangi türde yapılıyor? Ceiling'e gelen sayı zaten ne?</td></tr><tr><td class="nw">E3</td><td><code>Math.Round</code>: <code>(int)Math.Round(dakika / 60.0)</code></td><td>En yakın saate yuvarlarım</td><td>A1, A2, A4, A5, A6</td><td>G2, G9, G13, G14</td><td class="num nw">%95,6</td><td>30 dakikada Round kaç döndürüyor? Müşteri "en yakın" mı dedi, "başlayan" mı?</td></tr><tr><td class="nw">E4</td><td>Dilimi yuvarlanmış saatle seçmek: <code>if (saat &lt; 2)</code> (= M5)</td><td>2 saatten az = saat &lt; 2</td><td class="nw">A2</td><td class="nw">G5</td><td class="num nw">%51</td><td>119 dakikada saat kaç, dakika kaç? Hasan Abi'nin cümlesi hangisine bakıyor?</td></tr><tr><td class="nw">E5</td><td>2 saat sınırını 1. dilime katmak: <code>if (dakika &lt;= 120)</code> (= M1)</td><td>"2 saatten az", 2 de dâhil olmalı</td><td class="nw">A3</td><td class="nw">—</td><td class="num nw">%0</td><td>Hasan Abi tam 2 saat için ne demişti? Kartı oku ya da yeniden sor.</td></tr><tr><td class="nw">E6</td><td>6 saat sınırını dışarıda bırakmak: <code>if (dakika &lt; 360)</code> (= M2)</td><td>6 saat günlük dilime girer</td><td class="nw">—</td><td class="nw">G8</td><td class="num nw">%0</td><td>Tam 6 saat için S3'ün cevabı kartta yazıyor.</td></tr><tr><td class="nw">E7</td><td>24 saatten sonrasını hep 250 saymak: <code>return 250;</code> (= M6)</td><td>Günlük 250, bitti</td><td class="nw">A6</td><td>G12, G13, G14</td><td class="num nw">%100</td><td>1.441 dakika kaç gün? Kartta Madde 4 ne diyor?</td></tr><tr><td class="nw">E8</td><td>Gün hesabında yukarı yuvarlama yok: <code>int gun = dakika / 1440;</code></td><td>Gün = dakika / 1440</td><td>A5, A6</td><td>G9, G10, G13, G14</td><td class="num nw">%100</td><td>361 dakikada gün kaç çıkıyor? 0 gün kaç TL?</td></tr><tr><td class="nw">E9</td><td>Gün için <code>dakika / 1440 + 1</code> (= M4)</td><td>Yukarı yuvarlamanın kolayı: bir ekle</td><td class="nw">—</td><td>G11, G12</td><td class="num nw">%49,8</td><td>1.440 dakika kaç gün? "Bir dakika fazlası ikinci gün" demişti; tam gün için?</td></tr><tr><td class="nw">E10</td><td>Asgari ücret varsayımı: <code>Math.Max(saat, 1) * 100</code></td><td>En az bir saat ödenir</td><td class="nw">—</td><td class="nw">G1</td><td class="num nw">%0</td><td>S5'in cevabını oku: aynı dakika çıkan ödemez.</td></tr><tr><td class="nw">E11</td><td>Geniş koşulu önce yazmak: <code>if (dakika &lt;= 360) …; else if (dakika &lt; 120) …</code></td><td>Koşulların sırası fark etmez</td><td>A1, A2</td><td>G2, G3, G4, G5</td><td class="num nw">%100</td><td>30 dakikada hangi <code>if</code> çalışıyor? Koşulları yukarıdan aşağı izle.</td></tr><tr><td class="nw">E12</td><td><code>&amp;&amp;</code> yerine <code>||</code>: <code>if (dakika &gt;= 120 || dakika &lt;= 360)</code></td><td>ve / veya aynı şey</td><td>A1, A2, A5, A6</td><td>G2, G3, G4, G5, G9, G10, G11, G12, G13, G14</td><td class="num nw">%100</td><td>Hangi sayı bu koşulu sağlamaz? 5'i dene.</td></tr><tr><td class="nw">E13</td><td>Açık testleri ezberlemek: <code>switch (dakika) { case 30: return 100; … default: return 0; }</code></td><td>Kırmızıyı yeşile çevirmek</td><td class="nw">—</td><td>G2, G3, G4, G5, G6, G7, G8, G9, G10, G11, G12, G13, G14</td><td class="num nw">%100</td><td>Müfettiş 59 dakika için ne söyleyecek? Müşteri yalnızca 6 kişi mi?</td></tr></tbody></table></div><p>Üç gözlem:</p><ol><li><strong>13 hatanın 9'u en az bir açık testi kırar;</strong> E6, E9, E10 ve E13 açık testleri geçer ve yalnızca Müfettiş yakalar. "Altı yeşil, bitti" hissi bu yüzden tehlikelidir; editördeki "Müfettiş'e gönder" düğmesi açık testler yeşil olur olmaz parlar.</li><li><strong>E6 (<code>&lt; 360</code>) ve E10 ("en az 1 saat") tohumlu setle de yakalanmaz</strong> (0 / 10.000); onları yalnızca G8 ve G1 görür. Sabit gizli testlerin sınır bölgelerini (0 dakika, 6 saat sınırı, tam gün katları) tutması bu yüzden vazgeçilmezdir; tohumlu set bu bölgeleri yoklamak için tasarlanmamıştır.</li><li><strong>E13 (ezber) 26 vakadan yalnızca 7'sini geçer</strong> (6 açık + G1) ve altı tohumlu vakanın hiçbirini geçemez; ezberleyen oyuncu Deneme'den öteye geçemez ve gelirinin tamamını kaybeder (§3.12).</li></ol><p>"Usta'nın yönlendirmesi" sütunu Sokratik sorudur: çözümü yazmaz, yalnızca bakılacak yeri gösterir (KANON §8: en fazla "Örnek" kademesi). Cümle, kırmızı vaka kümesinin imzasından seçilir (yalnızca A3 kırmızıysa E5, A1-A2-A4 kırmızıysa E1 gibi); bu arama deterministiktir ve AI maliyeti sıfırdır. İmza tablodaki hiçbir hatayla eşleşmezse B3'ün Haiku tabanlı genel Sokratik ipucu devreye girer. E2'nin yazımı <code>Math.Ceiling(dakika / 60)</code> olduğunda derleme hatasına dönüşür; gerçek derleyici iletisi: <em>"error CS0121: Çağrı şu yöntem veya özellikler arasında belirsiz: 'System.Math.Ceiling(decimal)' ve 'System.Math.Ceiling(double)'"</em>. Bu kod Türkçe hata tablosunun adayıdır (B3 sahibidir): "<code>int</code> değeri <code>Ceiling</code>'e veriyorsun; <code>decimal</code> mi <code>double</code> mı olduğunu derleyici seçemiyor. Önce <code>double</code>'a çevir."</p>
+</details>
+<h4 id="b5-3-9-ipucu-merdiveni-tam-metin">3.9 İpucu merdiveni (tam metin)</h4>
+<p>KANON §8: <strong>Pusula → Fener → Taslak → Örnek</strong>; içerik bankasından gelir, ücretsiz ve sınırsızdır, AI maliyeti yoktur. Kural şudur: her kademe bir öncekinin açılmasından sonra istenebilir (atlama yok), bekleme süresi yoktur; üç başarısız çalıştırmadan sonra Usta "Pusula ister misin?" diye <em>önerir</em> ama zorlamaz. İpucu istemeyen ilk deneme için <strong>Berrak Zihin</strong> (+%15 XP) kalır; ipucu kullanımı gelire, Savunma'ya ve rozetlere hiçbir etki yapmaz.</p><div class="callout"><p><strong>Pusula (hangi kavram).</strong> "Bu iş emrinde üç ayrı iş var: (1) dakikayı 'başlayan saat'e çevirmek, (2) süreye göre tarife dilimini seçmek, (3) dilimin birim fiyatıyla çarpmak. Önce yalnızca ilkini çöz: 61 dakika kaç başlayan saattir? 120 dakika? 121 dakika?"</p></div><div class="callout"><p><strong>Fener (hangi durum, hangi satır).</strong> "Dilimi yuvarlanmış saat değil, ham dakika belirler (Sözleşme madde 2): 119 dakika hâlâ '2 saatten az', 120 dakika artık '2–6 saat'. Başlayan saat için Ders 1.2'deki kalıbı kullan: tam sayı bölmesinden önce bölenin bir eksiğini ekle. 24 saatten sonrası için aynı kalıp 1440 ile gerekir."</p></div><div class="callout"><p><strong>Taslak (sözde kod, eksik satırlar).</strong></p><pre class="code" data-lang="txt"><code>dakika 0 veya altındaysa -&gt; 0 dön
+saat = ___   (başlayan saat, Ders 1.2 kalıbı)
+dakika &lt; 120 ise -&gt; saat x ___
+dakika &lt;= 360 ise -&gt; saat x ___
+aksi halde: gun = ___   (başlayan gün) -&gt; gun x ___</code></pre></div><div class="callout"><p><strong>Örnek (benzer ama farklı bir problem).</strong> "Bisiklet kiralama: 45 dakikadan az, başlayan her 15 dakika 10 TL; 45–180 dakika (sınırlar dâhil), başlayan her 30 dakika 15 TL; 180 dakikayı aşan, başlayan gün × 120 TL."</p><pre class="code" data-lang="cs"><code>public static int BisikletUcreti(int dakika)
+{
+    if (dakika &lt;= 0) return 0;
+    if (dakika &lt; 45)   return (dakika + 14) / 15 * 10;
+    if (dakika &lt;= 180) return (dakika + 29) / 30 * 15;
+    return (dakika + 1439) / 1440 * 120;
+}</code></pre></div><p>Örnek, Otopark'ın cevabı değil aynı şemanın başka bir yüzüdür: birim, eşikler ve fiyatlar değişmiştir. Kod çalıştırıldı: 20 dk → 20 TL, 44 → 30, 45 → 30, 180 → 90, 181 → 120, 1.441 → 240 (§9, <code>ORN-OP</code>). Oyuncu bu kalıbı Otopark'a çevirirken sınırları ve birimleri kendisi yeniden kurmak zorundadır; ipucu merdiveni cevabı vermez, desen verir.</p>
+<h4 id="b5-3-10-usta-yorumu-ornekleri">3.10 Usta Yorumu örnekleri</h4>
+<p>Usta Yorumu iki yerde çıkar: (1) oyuncu kırmızı testlerle "Usta'ya sor" derse Sokratik bir yönlendirme (Kurul kotasına sayılır, çözüm yazmaz); (2) tüm testler yeşil olunca otomatik <strong>kod incelemesi</strong> (bonus 10–30 XP, gelire etkisi yok; KANON §3.3). Biçim sabittir: <strong>1 doğru şey + 1 eksik + 1 sonraki adım</strong>, ≤80 kelime, isimle hitap, emoji yok; "Aferin" yerine süreç övgüsü; hata dili "henüz değil; şu satıra bak" (A-vizyon-FINAL §10). Usta gizli girdiyi bilmez; yalnızca açık testleri ve Müfettiş kategorisini kullanır.</p><p><strong>Hatalı çözüm için (E5, yalnızca A3 kırmızı).</strong></p><div class="callout"><p><strong>Usta Defne → Ayşe.</strong> "Ayşe, <code>(dakika + 59) / 60</code> kalıbıyla başlayan saati doğru saymışsın; işin zor yarısını bitirdin. Henüz değil ama: 120 dakikada kodun 200 TL döndürüyor, Sözleşme Kartı 80 diyor. Sınır satırına dön: tam 2 saat hangi dilimde? <code>&lt;</code> ile <code>&lt;=</code> arasındaki seçimi iki sayıyı yan yana yazarak yeniden yap."</p></div><p><strong>Doğru çözüm için (26/26 yeşil, kod incelemesi, +20 XP).</strong></p><div class="callout"><p><strong>Usta Defne → Ayşe.</strong> "Ayşe, bütün testler yeşil; <code>(dakika + 59) / 60</code> kalıbını kendi başına kurman süreç olarak güzel. Eksik: 100, 40 ve 250 sayıları kodun içinde anlamsız duruyor; yarın Hasan Abi fiyatı değiştirirse hepsini aramak zorunda kalırsın. Sonraki adım: bu sayıları müşterinin sözcükleriyle adlandırılmış <code>const int</code> değerlere çevir."</p></div><p>İki örnek de 80 kelimenin altındadır (kelime sayımı: 48 ve 46). İkincisinin XP'si (20) B3'ün kod incelemesi rubriğine bağlıdır; bu belge yalnızca 10–30 aralığını sabitler.</p>
+<h4 id="b5-3-11-hata-bildirimi-mutasyon-katalogu">3.11 Hata Bildirimi mutasyon kataloğu</h4>
+<p>Hata Bildirimi görevleri (günde 3; KANON §3.3, §4) referans çözüme havuzdan <strong>tek bir mutasyon</strong> enjekte ederek üretilir (A-vizyon-FINAL §7). Otopark L1 kataloğu <strong>8 mutasyon</strong> ve <strong>2 eşdeğer mutant</strong> içerir. Her mutasyonun bir Müfettiş cümlesi (Müfettiş'in tek resmî cümlesi biçiminde: B1 §8.3), bir beklenen açıklama ve bir zorluk/ödül sınıfı vardır. "Yanlış sonuç veren girdiler" sütunu 0–4.400 dakika taranarak ölçülmüştür (§9).</p><div class="tablewrap"><table><thead><tr><th>Kod</th><th>Sınıf · Bayt</th><th>Değişen satır</th><th>Müfettiş cümlesi</th><th>Beklenen açıklama</th></tr></thead><tbody><tr><td class="nw">M1</td><td>Kolay · 40 B</td><td><code>if (dakika &lt; 120)</code> → <code>if (dakika &lt;= 120)</code></td><td>"Müşteri tam 2 saat için 200 TL ödemiş."</td><td>2 saatten az sınırı dâhil sayılmış; tam 120 dakika 2. dilime girmeli (alt sınır dâhil), oysa 1. dilimde 2 × 100 = 200 hesaplanıyor.</td></tr><tr><td class="nw">M2</td><td>Kolay · 40 B</td><td><code>if (dakika &lt;= 360)</code> → <code>if (dakika &lt; 360)</code></td><td>"Müşteri tam 6 saat için 250 TL ödemiş."</td><td>6 saat üst sınırı dâhil olmalı; 360 günlük dilime düşüp 250 hesaplanıyor, 6 × 40 = 240 olmalı.</td></tr><tr><td class="nw">M6</td><td>Kolay · 40 B</td><td><code>int gun = (dakika + 1439) / 1440; return gun * 250;</code> → <code>return 250;</code></td><td>"Müşteri 2.880 dakika için 250 TL ödemiş."</td><td>Günlük dilimde başlayan gün sayılmıyor; 24 saati aşan her kalış tek gün ücretiyle kapanıyor.</td></tr><tr><td class="nw">M3</td><td>Orta · 60 B</td><td><code>int saat = (dakika + 59) / 60;</code> → <code>(dakika + 60) / 60</code></td><td>"Müşteri tam 1 saat için 200 TL ödemiş."</td><td>Tam saat katlarında bir fazla saat sayılıyor; 60 eklemek artık yokken de yukarı yuvarlar. Doğru kalıp 59.</td></tr><tr><td class="nw">M4</td><td>Orta · 60 B</td><td><code>int gun = (dakika + 1439) / 1440;</code> → <code>int gun = dakika / 1440 + 1;</code></td><td>"Müşteri 1.440 dakika için 500 TL ödemiş."</td><td>Tam gün katlarında fazladan gün sayılıyor; "taban + 1" yalnızca artık varken doğrudur.</td></tr><tr><td class="nw">M7</td><td>Orta · 60 B</td><td><code>return saat * 40;</code> → <code>return dakika / 60 * 40;</code> (2. dilimde)</td><td>"Müşteri 121 dakika için 80 TL ödemiş."</td><td>2. dilimde yukarı yuvarlama atlanmış; <code>saat</code> değişkeni dururken ham bölme kullanılmış.</td></tr><tr><td class="nw">M5</td><td>Zor · 90 B</td><td><code>if (dakika &lt; 120)</code> → <code>if (saat &lt; 2)</code></td><td>"Müşteri 61 dakika için 80 TL ödemiş."</td><td>Dilim yuvarlanmış saatle seçilmiş; 61–119 dakika 2 saat sayıldığı için 2. dilime düşüyor, oysa dilimi ham dakika belirler (Madde 2).</td></tr><tr><td class="nw">M8</td><td>Uzman · 120 B</td><td><code>if (dakika &lt;= 360)</code> → <code>if (dakika &gt; 120 &amp;&amp; dakika &lt; 360)</code></td><td>"İki müşteri: biri tam 2 saat, biri tam 6 saat için 250 TL ödemiş."</td><td>İki sınır birden dışarıda: 120 ve 360 ne 1. ne 2. dilimde, ikisi de günlük dilime düşüyor.</td></tr></tbody></table></div><p>Ölçüm (dotnet, §9): hangi vakaların kaldığı, tohumlu setin yakalama oranı ve yanlış sonuç veren girdiler.</p><div class="tablewrap"><table><thead><tr><th>Kod</th><th>Kalan açık</th><th>Kalan gizli</th><th>Yanlış sonuç veren girdiler (0–4.400 dk)</th><th class="num">Tohumlu setle yakalanma</th></tr></thead><tbody><tr><td class="nw">M1</td><td class="nw">A3</td><td class="nw">—</td><td>n = 1: 120</td><td class="num nw">%0</td></tr><tr><td class="nw">M2</td><td class="nw">—</td><td class="nw">G8</td><td>n = 1: 360</td><td class="num nw">%0</td></tr><tr><td class="nw">M6</td><td class="nw">A6</td><td>G12, G13, G14</td><td>n = 2.960: 1.441–4.400</td><td class="num nw">%100</td></tr><tr><td class="nw">M3</td><td class="nw">A3</td><td>G4, G6, G8</td><td>n = 6: 60, 120, 180, 240, 300, 360</td><td class="num nw">%50,2</td></tr><tr><td class="nw">M4</td><td class="nw">—</td><td>G11, G12</td><td>n = 3: 1.440, 2.880, 4.320</td><td class="num nw">%49,8</td></tr><tr><td class="nw">M7</td><td class="nw">A4</td><td class="nw">G7</td><td>n = 236: 121–179, 181–239, 241–299, 301–359</td><td class="num nw">%100</td></tr><tr><td class="nw">M5</td><td class="nw">A2</td><td class="nw">G5</td><td>n = 59: 61–119</td><td class="num nw">%51</td></tr><tr><td class="nw">M8</td><td class="nw">A3</td><td class="nw">G8</td><td>n = 2: 120, 360</td><td class="num nw">%0</td></tr></tbody></table></div><p><strong>Eşdeğer mutantlar.</strong> Katalog yalnızca <em>öldürülebilen</em> mutantları barındırır. İki mutant hiçbir testle ve 0–300.000 dakika süpürmesinde bile öldürülemedi: <strong>EQ1</strong> <code>if (dakika &lt;= 0) return 0;</code> satırını siler (girdi ≥ 0 iken <code>(0 + 59) / 60 = 0</code> olduğundan davranış aynıdır; yalnızca sözleşme dışı <code>-200</code> girdisinde fark çıkar: −200 TL). <strong>EQ2</strong> <code>dakika &lt;= 360</code> yerine <code>saat &lt;= 6</code> yazar (<code>ceil(d / 60) ≤ 6 ⟺ d ≤ 360</code>). İkisi de katalogdan çıkarılır; EQ2 ayrıca D1 Savunma sorusundaki "ham dakikayı neden seçtin" tartışmasına örnek olur.</p><p><strong>Seçim kuralları.</strong> (1) Aynı oyuncuya aynı mutasyon 7 gün içinde tekrar etmez. (2) Günlük 3 görev farklı zorluk sınıflarından çekilir; sekiz mutasyonun Bayt ortalaması (3 × 40 + 3 × 60 + 90 + 120) ÷ 8 = <strong>63,75 B</strong>'dir, B2 §5.1'in "ortalama ≈60 B" varsayımına uyar. (3) Oyuncunun düzeltmesi derlenir ve 26 vakanın hepsini (6 açık + 14 gizli + görev tohumundan 6 tohumlu) geçmek zorundadır. (4) Mutasyon operatörleri beş sınıftır: ilişkisel operatör (<code>&lt;</code> ↔ <code>&lt;=</code>), sabit kayması (<code>+59</code> → <code>+60</code>), yuvarlama yöntemi (<code>ceil</code> → <code>taban + 1</code>), değişken ikamesi (<code>saat</code> → <code>dakika / 60</code>) ve koşul ikamesi (<code>dakika</code> → <code>saat</code>). Aynı operatörler Manav, Oto Yıkama ve Kütüphane'de yeniden kullanılır (§6.3).</p>
+<details class="acc"><summary id="b5-3-12-sentetik-trafik-ve-gelir">3.12 Sentetik trafik ve gelir</summary>
+<p>İşletme geliri, oyuncu kodunun sentetik trafikte ürettiği TL'dir ve referans çözümle tavanlanır (KANON §4; B2 §8.2). Bu bölüm iki iş yapar: B2'nin L1–L5 hedeflerini (220 / 350 / 560 / 900 / 1.440 B/gün) üreten <strong>trafik profillerini</strong> tanımlar ve hataların gelire <strong>yansıma</strong> miktarını ölçer.</p><p>Trafik, <code>SHA-256(işletme + gün)</code> tohumundan her gece üretilir: araç başına dilim kümülatif olasılıkla seçilir ve dakika dilim içinde tekdüze çekilir (1–119, 120–360, 361–1.440, 1.441–2.880). Aşağıdaki değerler <strong>beklenen</strong> değerdir (tam sayımla, örnekleme gürültüsüz); B2 hedefi de beklenen değerdir. L1 için ek olarak 5.000 günlük deterministik simülasyon da çalıştırıldı (aşağıda).</p><div class="tablewrap"><table><thead><tr><th>Profil</th><th>Parametreler</th><th class="num">E[TL/araç]</th><th class="num">Beklenen TL/gün</th><th class="num">Beklenen B/gün</th><th class="num">B2 hedefi (B/gün)</th><th class="num">Sapma</th></tr></thead><tbody><tr><td>Otopark L1</td><td>12 araç; dilim 45/35/18/2; dakika dilim içinde tekdüze (1–119, 120–360, 361–1.440, 1.441–2.880)</td><td class="num nw">185,17</td><td class="num nw">2.222</td><td class="num nw">222,2</td><td class="num nw">220</td><td class="num nw">+%1,0</td></tr><tr><td>Otopark L2</td><td>20 araç; L1 dilimleri; %5 abone (ücretsiz) → çarpan 0,95</td><td class="num nw">185,17</td><td class="num nw">3.518</td><td class="num nw">351,8</td><td class="num nw">350</td><td class="num nw">+%0,5</td></tr><tr><td>Otopark L3</td><td>30 araç; dilim 40/33/22/5; %85 Normal, %8 Engelli, %7 Elektrikli (yarı fiyat) → çarpan 0,925</td><td class="num nw">199,10</td><td class="num nw">5.525</td><td class="num nw">552,5</td><td class="num nw">560</td><td class="num nw">−%1,3</td></tr><tr><td>Otopark L4</td><td>40 araç; dilim 27/30/31/12 (son dilim 1.441–2.880); giriş dakikası tekdüze 0–1.439; gece sabit 150</td><td class="num nw">231,08</td><td class="num nw">9.243</td><td class="num nw">924,3</td><td class="num nw">900</td><td class="num nw">+%2,7</td></tr><tr><td>Otopark L5</td><td>50 araç; dilim 15/25/40/20 (son dilim 1.441–4.320); kapasite aşımı yok sayıldı</td><td class="num nw">292,33</td><td class="num nw">14.617</td><td class="num nw">1.461,7</td><td class="num nw">1.440</td><td class="num nw">+%1,5</td></tr><tr><td>Büfe L1</td><td>100 satış; menü: su 7,50 (%13), çay 10,00 (%19), simit 12,50 (%20), ayran 15,00 (%10), tost 45,00 (%16), sandviç 60,00 (%13), kahvaltı tabağı 95,00 (%9)</td><td class="num">30,42 (ortalama)</td><td class="num nw">3.042</td><td class="num nw">304,2</td><td class="num nw">300</td><td class="num nw">+%1,4</td></tr><tr><td>Manav L1</td><td>28 müşteri; kiloFiyati {25, 30, 40, 60} eşit; kilo 1 (%20), 2 (%25), 3 (%20), 5 (%15), 7 (%10), 10 (%6), 12 (%4)</td><td class="num">136,72 (ortalama)</td><td class="num nw">3.828</td><td class="num nw">382,8</td><td class="num nw">380</td><td class="num nw">+%0,7</td></tr><tr><td>Kargo L1</td><td>60 raf; 0 koli %8, 1–20 koli %72, 21–30 koli %20 (tekdüze)</td><td class="num">81,56 (ortalama)</td><td class="num nw">4.894</td><td class="num nw">489,4</td><td class="num nw">500</td><td class="num nw">−%2,1</td></tr></tbody></table></div><p>Okuma: L1 profili A-vizyon-FINAL §7'nin sayısını doğrular (araç başına ≈185 TL, 12 araçla 2.222 TL, 222 B; hedef 220 B). L2'nin %5 abonesi 20 araçta ortalama 1 ücretsiz araçtır. L3–L5 profilleri <strong>B5 önerisidir</strong>: ×1,6 kuralına uyması için kalış dağılımı uzun kalışa kaydırıldı (çok katlı otoparkın uzun park çekmesi, kapasite 50'li otoparkın günlük kalışlarla dolması). Kaydırmalar Ek A'dadır.</p><p><strong>Günlük dalgalanma.</strong> L1'de araç başına σ = 71,8 TL, 12 araçlık günün σ'sı 249 TL'dir (±%11,2); 7 günlük ortalamada ±%4,2'ye iner. Yani B2'nin "≈220 B/gün" değeri bir gün için garanti değil, haftalık beklentidir. Kasa ritmi (8 saat, günde 3 toplama; B2 §8.3) bu gürültüyü zaten emer.</p><p><strong>5.000 günlük simülasyon</strong> (deterministik tohum, 12 araç/gün): referans ortalama <strong>2.220 TL/gün (σ = 248 TL), 222,0 B/gün</strong>.</p><p><strong>Hataların gelire yansıması.</strong> Aşağıdaki tablo her hatanın L1 trafiğinde günde ortalama kaç TL fark yarattığını ve gün içinde en az bir araçta farklı ücret çıkma olasılığını verir (şikâyet balonunun görünme olasılığı).</p><div class="tablewrap"><table><thead><tr><th>Kod</th><th>Hata</th><th class="num">Gelir etkisi (TL/gün)</th><th class="num">Günde en az bir araçta farklı ücret</th><th>Gelire görünürlüğü</th></tr></thead><tbody><tr><td class="nw">M1</td><td><code>&lt;</code> → <code>&lt;=</code> (2 saat)</td><td class="num nw">2,1</td><td class="num nw">%1,7</td><td>fazla ücret; görünmez</td></tr><tr><td class="nw">M2</td><td><code>&lt;=</code> → <code>&lt;</code> (6 saat)</td><td class="num nw">0,2</td><td class="num nw">%1,7</td><td>fazla ücret; görünmez</td></tr><tr><td class="nw">M3</td><td><code>+59</code> → <code>+60</code></td><td class="num nw">8,0</td><td class="num nw">%12,5</td><td>fazla ücret; ara sıra</td></tr><tr><td class="nw">M4</td><td>gün: <code>taban + 1</code></td><td class="num nw">0,5</td><td class="num nw">%0,2</td><td>fazla ücret; görünmez</td></tr><tr><td class="nw">M5</td><td>dilim yuvarlanmış saatle</td><td class="num nw">-321,3</td><td class="num nw">%95,2</td><td>eksik ücret; her gün</td></tr><tr><td class="nw">M6</td><td>günlük sabit 250</td><td class="num nw">-60,0</td><td class="num nw">%21,5</td><td>eksik ücret; ara sıra</td></tr><tr><td class="nw">M7</td><td>2. dilimde <code>dakika / 60</code></td><td class="num nw">-164,5</td><td class="num nw">%99,4</td><td>eksik ücret; her gün</td></tr><tr><td class="nw">M8</td><td>iki sınır birden</td><td class="num nw">3,1</td><td class="num nw">%3,4</td><td>fazla ücret; görünmez</td></tr><tr><td class="nw">E1</td><td>saat: <code>dakika / 60</code></td><td class="num nw">-700,0</td><td class="num nw">%100</td><td>eksik ücret; her gün</td></tr><tr><td class="nw">E2</td><td><code>Ceiling((double)(d / 60))</code></td><td class="num nw">-1.299,4</td><td class="num nw">%100</td><td>eksik ücret; her gün</td></tr><tr><td class="nw">E3</td><td class="nw"><code>Math.Round</code></td><td class="num nw">-559,9</td><td class="num nw">%99,9</td><td>eksik ücret; her gün</td></tr><tr><td class="nw">E8</td><td>gün: <code>dakika / 1440</code></td><td class="num nw">-599,5</td><td class="num nw">%93,1</td><td>eksik ücret; her gün</td></tr><tr><td class="nw">E10</td><td>en az 1 saat</td><td class="num nw">0</td><td class="num nw">%0</td><td>—; görünmez</td></tr><tr><td class="nw">E11</td><td><code>else if</code> sırası</td><td class="num nw">-484,6</td><td class="num nw">%99,9</td><td>eksik ücret; her gün</td></tr><tr><td class="nw">E12</td><td><code>&amp;&amp;</code> yerine <code>||</code></td><td class="num nw">545,0</td><td class="num nw">%100</td><td>fazla ücret; her gün</td></tr><tr><td class="nw">E13</td><td class="nw">ezber</td><td class="num nw">-2.204,3</td><td class="num nw">%100</td><td>eksik ücret; her gün</td></tr></tbody></table></div><p>Üç sonuç. <strong>(1) Sınır hataları gelire yansımaz.</strong> M1, M2, M4, M8 ve E10 günde en çok +3,1 TL oynatır ve şikâyet olasılıkları %0–3,4'tür. Gelir tavanı ve gece batch'inin şikâyet balonu bu hataları göremez; yalnızca sabit gizli testler ve Hata Bildirimi görür. <strong>Gizli testler ve Savunma, "gelir güvenliği"nden bağımsız olarak "öğrenme güvenliği" için vazgeçilmezdir.</strong> <strong>(2) Yuvarlama ve dilim hataları gelire fazlasıyla yansır:</strong> M5 −321 TL/gün (≈%14), E1 −700 TL/gün (≈%31); oyuncu bu hatayı kasasından anlar ve eksik ücret şikâyeti alır. <strong>(3) Fazla ücret yazan hatalar tavana çarpar:</strong> M3 (+8), E12 (+545) fazla kazanç getirmez, "fazla ücret şikâyeti" doğurur (B2 §8.2 kural 3).</p><p><strong>Tavan biçimi ve dengeleyici hata.</strong> B2 §8.2 tavanı toplamda uygular: <code>min(Σoyuncu, Σreferans)</code>. Bu, bir dilimde eksik, diğerinde fazla ücret yazan <em>dengeleyici</em> bir çözümü ödüllendirir. Deney: 61–119 dakika için 100 TL (eksik) ve 361–1.440 dakika için 374 TL (fazla) döndüren çözüm ham toplamda referansla aynı düzeydedir (2.224 ve 2.220 TL/gün). Toplam tavan ona referans gelirin <strong>%95,7</strong>'sini (2.124 TL/gün) verir; araç başına tavan <code>Σ min(oyuncu_i, ref_i)</code> <strong>%88,1</strong>'ine (1.956 TL/gün) indirir. Gece batch'inde araç başına <code>Math.Min</code> zaten aynı döngüdedir, yani önlem bedelsizdir; B2 §8.2'nin buna çevrilmesi <strong>Ek A</strong>'da önerildi.</p>
+</details>
+<details class="acc"><summary id="b5-3-13-otopark-l2-abone-listesi">3.13 Otopark L2 — Abone Listesi</summary>
+<p><strong>Kapı.</strong> Yükseltme 500 B, 150 XP (KANON §3.3, §4); kavram Liman dersi (<code>List&lt;T&gt;</code>; B2 varsayımı 8: Liman 2.1). Gelir 350 B/gün (14,6 B/saat). Görsel ek: ikinci şerit ve plaka okuyucu, Vitrin açılır (B1 §6.3).</p><blockquote class="musteri"><p>"Aylık abonelerimin plakaları bir listede duruyor. Onlar ödemesin; diğerleri eskisi gibi."</p><cite>Hasan Abi</cite></blockquote><p><strong>Sözleşme.</strong></p><ol><li>İmza: <code>public static int Otopark.UcretHesapla(int dakika, string plaka, List&lt;string&gt; aboneler)</code>. L1 metodu aynen kalır (aşırı yükleme).</li><li><code>plaka</code> boş olmayan, büyük harfli, boşluksuz bir dizedir (plaka okuyucu normalleştirir): <code>"34ABC123"</code>.</li><li><code>aboneler</code> hiçbir zaman <code>null</code> değildir (boş liste olabilir); aynı plaka birden çok kez yazılmış olabilir.</li><li>Plaka <code>aboneler</code> içinde <strong>tam eşleşmeyle</strong> bulunuyorsa ücret <strong>0</strong>'dır: süre ne olursa olsun, 24 saati aşan dâhil.</li><li>Aksi halde L1 tarifesi aynen uygulanır (L1 Sözleşme maddeleri 1–4).</li><li>Eşleşme tam eşitliktir: <code>"34ABC12"</code> ve <code>"34ABC1234"</code>, abone <code>"34ABC123"</code> ile eşleşmez.</li></ol><div class="tablewrap"><table><thead><tr><th>Açık</th><th class="num">dakika</th><th>plaka</th><th>aboneler</th><th class="num">TL</th><th>Gerekçe</th></tr></thead><tbody><tr><td class="nw">A1</td><td class="num nw">30</td><td class="nw">34ABC123</td><td class="nw">[34ABC123]</td><td class="num nw">0</td><td>abone, kısa kalış</td></tr><tr><td class="nw">A2</td><td class="num nw">30</td><td class="nw">06XYZ789</td><td class="nw">[34ABC123]</td><td class="num nw">100</td><td>abone değil → L1</td></tr><tr><td class="nw">A3</td><td class="num nw">121</td><td class="nw">34ABC123</td><td>[06XYZ789, 34ABC123]</td><td class="num nw">0</td><td>listenin sonundaki abone</td></tr><tr><td class="nw">A4</td><td class="num nw">361</td><td class="nw">35DEF456</td><td class="nw">[]</td><td class="num nw">250</td><td>boş liste</td></tr><tr><td class="nw">A5</td><td class="num nw">120</td><td class="nw">06XYZ789</td><td>[34ABC123, 35DEF456]</td><td class="num nw">80</td><td>iki aboneli listede abone olmayan</td></tr></tbody></table></div><div class="tablewrap"><table><thead><tr><th>Gizli</th><th class="num">dakika</th><th>plaka</th><th>aboneler</th><th class="num">TL</th><th>Gerekçe</th></tr></thead><tbody><tr><td class="nw">G1</td><td class="num nw">1.441</td><td class="nw">34ABC123</td><td class="nw">[34ABC123]</td><td class="num nw">0</td><td>24 saati aşan abone yine ödemez</td></tr><tr><td class="nw">G2</td><td class="num nw">120</td><td class="nw">34ABC12</td><td class="nw">[34ABC123]</td><td class="num nw">80</td><td>önek eşleşmesi değil</td></tr><tr><td class="nw">G3</td><td class="num nw">0</td><td class="nw">06XYZ789</td><td class="nw">[06XYZ789]</td><td class="num nw">0</td><td>abone ve sıfır süre</td></tr><tr><td class="nw">G4</td><td class="num nw">2.881</td><td class="nw">34ABC1234</td><td class="nw">[34ABC123]</td><td class="num nw">750</td><td>abone plakası içinde geçen daha uzun plaka</td></tr></tbody></table></div><div class="tablewrap"><table><thead><tr><th>Kademe</th><th>İpucu</th></tr></thead><tbody><tr><td class="nw">Pusula</td><td>"İki iş var: plakanın abone listesinde olup olmadığına bakmak, olmadıysa eski tarifeyi kullanmak. Bir listede değer var mı diye soran hazır bir metot düşün."</td></tr><tr><td class="nw">Fener</td><td>"<code>List&lt;string&gt;</code> tipinin 'içeriyor mu' sorusunu cevaplayan metoduna bak. Abone ise süre hiç önemli değil; abone değilse zaten yazdığın <code>UcretHesapla(dakika)</code> işe yarar."</td></tr><tr><td class="nw">Taslak</td><td><code>abone ise -&gt; 0 dön</code> / <code>değilse -&gt; L1 ücretini dön</code></td></tr><tr><td class="nw">Örnek</td><td>"Yasaklı kelime listesi: <code>bool Yasakli(string kelime, List&lt;string&gt; liste) =&gt; liste.Contains(kelime);</code> <code>Yasakli("kedi", …)</code> true, <code>"kuş"</code> false, <code>"kediler"</code> false." (doğrulandı: <code>ORN-L2</code>)</td></tr></tbody></table></div><p><strong>Referans çözüm</strong> (<code>Otopark</code> sınıfında, L1 metodunun yanına eklenen aşırı yükleme; L1 metodu aynen durur).</p><pre class="code" data-lang="cs"><code>public static int UcretHesapla(int dakika, string plaka, List&lt;string&gt; aboneler)
+{
+    if (aboneler.Contains(plaka)) return 0;   // abone: kalış süresi ne olursa olsun ödemez
+    return UcretHesapla(dakika);              // diğerleri: L1 tarifesi aynen
+}</code></pre><p><strong>Tuzaklar.</strong> En sık hata yönü tersine çevirmektir: <code>aboneler.Any(a =&gt; plaka.Contains(a))</code> abone plakasını <em>içeren</em> her plakayı abone sayar. Dotnet çalıştırması: bu hata G4'te 0 TL döndürür (beklenen 750) ve G2'de doğru çıkar (80); yani G2 tek başına yetmez, G4 gereklidir (§9).</p>
+</details>
+<details class="acc"><summary id="b5-3-14-otopark-l3-indirim-ve-bozuk-kayit">3.14 Otopark L3 — İndirim ve Bozuk Kayıt</summary>
+<p><strong>Kapı.</strong> Yükseltme 1.200 B, 250 XP; kavram Atölyeler dersi (<code>enum</code>, <code>exception</code>; B4 kapısı: Atölyeler 3.4 (KANON §12.3)). Gelir 560 B/gün (23,3 B/saat). Görsel ek: ikinci kat, engelli ve şarj yerleri.</p><blockquote class="musteri"><p>"Engelli ve elektrikli araçlara yarı fiyat. Bir de bariyer bazen bozuk kayıt gönderiyor: eksi süre ya da bilmediğim bir tür kodu gelirse sistem hata versin, sessizce para yazmasın."</p><cite>Hasan Abi</cite></blockquote><p><strong>Sözleşme.</strong></p><ol><li><code>public enum AracTuru { Normal, Engelli, Elektrikli }</code> ve <code>public static int Otopark.UcretHesapla(int dakika, AracTuru tur)</code>.</li><li><strong>Önce <code>dakika</code> doğrulanır:</strong> <code>dakika &lt; 0</code> → <code>ArgumentOutOfRangeException</code>, parametre adı <code>"dakika"</code>. 0 geçerlidir.</li><li><strong>Sonra <code>tur</code> doğrulanır:</strong> tanımlı olmayan değer → <code>ArgumentOutOfRangeException</code>, parametre adı <code>"tur"</code>.</li><li><code>Normal</code>: L1 ücreti aynen. <code>Engelli</code> ve <code>Elektrikli</code>: L1 ücretinin %50'si.</li><li>Yuvarlama sorusu çıkmaz: L1 ücretleri 0–300.000 dakikada hep çifttir (tek sayı sayısı 0, §9), yarısı tam sayıdır. Oyuncu bunu Gereksinim Netleştirme'de "yarım TL çıkar mı?" diye sorarak bulabilir; cevap verilerden doğrulanır.</li><li>İleti metni serbesttir; test yalnızca tipi ve parametre adını arar.</li></ol><div class="tablewrap"><table><thead><tr><th>Açık</th><th class="num">dakika</th><th>tur</th><th class="num">Beklenen</th><th>Gerekçe</th></tr></thead><tbody><tr><td class="nw">A1</td><td class="num nw">120</td><td class="nw">Normal</td><td class="num nw">80</td><td class="nw">indirimsiz</td></tr><tr><td class="nw">A2</td><td class="num nw">120</td><td class="nw">Engelli</td><td class="num nw">40</td><td>yarı fiyat</td></tr><tr><td class="nw">A3</td><td class="num nw">61</td><td class="nw">Elektrikli</td><td class="num nw">100</td><td>200'ün yarısı</td></tr><tr><td class="nw">A4</td><td class="num nw">1.441</td><td class="nw">Engelli</td><td class="num nw">250</td><td>500'ün yarısı</td></tr><tr><td class="nw">A5</td><td class="num nw">−1</td><td class="nw">Normal</td><td class="num"><code>ArgumentOutOfRangeException("dakika")</code></td><td>bozuk kayıt</td></tr></tbody></table></div><div class="tablewrap"><table><thead><tr><th>Gizli</th><th class="num">dakika</th><th>tur</th><th>Beklenen</th><th>Gerekçe</th></tr></thead><tbody><tr><td class="nw">G1</td><td class="num nw">0</td><td class="nw">Engelli</td><td class="nw">0</td><td>sıfır geçerli</td></tr><tr><td class="nw">G2</td><td class="num nw">60</td><td class="nw"><code>(AracTuru)7</code></td><td><code>ArgumentOutOfRangeException("tur")</code></td><td>tanımsız tür</td></tr><tr><td class="nw">G3</td><td class="num nw">−5</td><td class="nw"><code>(AracTuru)7</code></td><td><code>ArgumentOutOfRangeException("dakika")</code></td><td>doğrulama sırası: önce dakika</td></tr><tr><td class="nw">G4</td><td class="num nw">360</td><td class="nw">Elektrikli</td><td class="nw">120</td><td>üst sınır dâhil, yarısı</td></tr><tr><td class="nw">G5</td><td class="num nw">30</td><td class="nw">Engelli</td><td class="nw">50</td><td>100'ün yarısı</td></tr></tbody></table></div><div class="tablewrap"><table><thead><tr><th>Kademe</th><th>İpucu</th></tr></thead><tbody><tr><td class="nw">Pusula</td><td>"Üç şey var: araç türünü bir <code>enum</code> ile ifade etmek, indirimi uygulamak, geçersiz girdide hata fırlatmak. Hangisinin önce kontrol edileceği sözleşmede yazıyor."</td></tr><tr><td class="nw">Fener</td><td>"Önce <code>dakika</code>, sonra <code>tur</code> kontrol edilir (madde 2–3). Hata için <code>throw new ArgumentOutOfRangeException(nameof(dakika))</code> kalıbı; tanımsız <code>enum</code> değeri için <code>Enum.IsDefined</code>."</td></tr><tr><td class="nw">Taslak</td><td><code>dakika &lt; 0 ise -&gt; hata(dakika)</code> / <code>tur tanımsızsa -&gt; hata(tur)</code> / <code>ucret = L1(dakika)</code> / <code>Normal ise ucret, değilse ucret / 2</code></td></tr><tr><td class="nw">Örnek</td><td>"Yaş kontrolü: <code>if (yas &lt; 0) throw new ArgumentOutOfRangeException(nameof(yas));</code> <code>YasKontrol(-1)</code> hata verir, <code>YasKontrol(0)</code> geçer." (doğrulandı: <code>ORN-L3</code>)</td></tr></tbody></table></div><p><strong>Referans çözüm</strong> (<code>Otopark</code> sınıfında, L1 metodunun yanına eklenen aşırı yükleme; L1 metodu aynen durur).</p><pre class="code" data-lang="cs"><code>public enum AracTuru { Normal, Engelli, Elektrikli }</code></pre><pre class="code" data-lang="cs"><code>public static int UcretHesapla(int dakika, AracTuru tur)
+{
+    if (dakika &lt; 0)
+        throw new ArgumentOutOfRangeException(nameof(dakika), dakika, "Süre negatif olamaz.");
+    if (!Enum.IsDefined(tur))
+        throw new ArgumentOutOfRangeException(nameof(tur), tur, "Bilinmeyen araç türü.");
+
+    int ucret = UcretHesapla(dakika);
+    return tur == AracTuru.Normal ? ucret : ucret / 2;   // L1 ücretleri hep çift: yarısı tam sayı
+}</code></pre><p><strong>Tuzaklar.</strong> <code>ucret * 0.5</code> yazan oyuncu <code>double</code> → <code>int</code> dönüşüm hatası (CS0266) alır; <code>(int)</code> ekleyince çalışır, çünkü L1 ücretleri çifttir. <code>if (tur == Engelli || tur == Elektrikli)</code> yazıp tanımsız türü sessizce normal saymak G2'yi kırar; doğrulama sırasını ters yazmak G3'ü kırar. İstisna testinde ileti metni karşılaştırılmadığından Türkçe ileti yazan oyuncu cezalandırılmaz.</p>
+</details>
+<details class="acc"><summary id="b5-3-15-otopark-l4-gece-tarifesi">3.15 Otopark L4 — Gece Tarifesi</summary>
+<p><strong>Kapı.</strong> Yükseltme 2.500 B, 400 XP; kavram Kampüs dersi (<code>DateTime</code>, <code>TimeSpan</code>). Gelir 900 B/gün (37,5 B/saat). Görsel ek: dört aydınlatma direği, "GECE TARİFESİ 150" neon şeridi.</p><blockquote class="musteri"><p>"Gece 22:00'den sabah 06:00'ya kadar gelenlere sabit 150. Gece gelen kısa durmaz zaten; ne kadar kalırsa kalsın sabaha kadar 150. Sabahı aşarsa normal tarife."</p><cite>Hasan Abi</cite></blockquote><p><strong>Sözleşme.</strong></p><ol><li>İmza: <code>public static int Otopark.UcretHesapla(DateTime giris, DateTime cikis)</code>.</li><li>Saniye ve milisaniye 0'dır; saat Türkiye saatidir (UTC+3, yaz saati uygulaması yok), <code>DateTime.Kind</code> önemsizdir.</li><li><code>cikis &lt; giris</code> → <code>ArgumentOutOfRangeException</code>, parametre adı <code>"cikis"</code>.</li><li>Süre <code>dakika = (int)(cikis - giris).TotalMinutes</code>; <code>dakika == 0</code> → 0.</li><li><strong>Gece girişi:</strong> giriş saati <code>22:00 ≤ t</code> ya da <code>t &lt; 06:00</code> (22:00 dâhil, 06:00 hariç).</li><li>Gece girişi <strong>ve</strong> çıkış, girişten sonraki ilk 06:00'ı aşmıyorsa (<code>cikis ≤ 06:00</code>, 06:00 dâhil) ücret <strong>sabit 150</strong>'dir; süre kaç olursa olsun, kısa gece kalışı da 150.</li><li>Diğer her durumda L1 tarifesi, <em>toplam</em> süreye göre.</li></ol><div class="tablewrap"><table><thead><tr><th>Açık</th><th>giriş</th><th>çıkış</th><th class="num">Beklenen</th><th>Gerekçe</th></tr></thead><tbody><tr><td class="nw">A1</td><td>03-10 23:00</td><td>03-11 05:00</td><td class="num nw">150</td><td>gece yarısını aşan gece kalışı (L1 olsaydı 240)</td></tr><tr><td class="nw">A2</td><td>03-10 14:00</td><td>03-10 14:30</td><td class="num nw">100</td><td>gündüz → L1</td></tr><tr><td class="nw">A3</td><td>03-10 21:59</td><td>03-11 05:00</td><td class="num nw">250</td><td>giriş gece penceresinin bir dakika öncesi (421 dk → günlük)</td></tr><tr><td class="nw">A4</td><td>03-10 22:00</td><td>03-11 06:00</td><td class="num nw">150</td><td>iki sınır birden dâhil</td></tr><tr><td class="nw">A5</td><td>03-10 12:00</td><td>03-10 11:00</td><td class="num"><code>ArgumentOutOfRangeException("cikis")</code></td><td>çıkış girişten önce</td></tr></tbody></table></div><div class="tablewrap"><table><thead><tr><th>Gizli</th><th>giriş</th><th>çıkış</th><th class="num">Beklenen</th><th>Gerekçe</th></tr></thead><tbody><tr><td class="nw">G1</td><td>03-10 23:00</td><td>03-11 06:01</td><td class="num nw">250</td><td>sabahı bir dakika aşıyor → normal tarife (421 dk)</td></tr><tr><td class="nw">G2</td><td>03-10 00:30</td><td>03-10 05:30</td><td class="num nw">150</td><td>gece yarısından <em>sonra</em> giren (aynı takvim günü)</td></tr><tr><td class="nw">G3</td><td>03-10 06:00</td><td>03-10 08:00</td><td class="num nw">80</td><td>06:00 gündüzdür; pencere dışı</td></tr><tr><td class="nw">G4</td><td>03-10 18:00</td><td>03-10 18:00</td><td class="num nw">0</td><td>sıfır süre</td></tr><tr><td class="nw">G5</td><td>03-10 23:00</td><td>03-12 23:00</td><td class="num nw">500</td><td>gece girişi ama sabahı çok aşan 2 gün → L1</td></tr><tr><td class="nw">G6</td><td>03-10 05:59</td><td>03-10 06:00</td><td class="num nw">150</td><td>gece penceresinin son dakikası, çıkış 06:00 dâhil</td></tr></tbody></table></div><p>(Tüm tarihler 2026; <code>giris</code>/<code>cikis</code> JSON'da ISO-8601, saniye 0.)</p><div class="tablewrap"><table><thead><tr><th>Kademe</th><th>İpucu</th></tr></thead><tbody><tr><td class="nw">Pusula</td><td>"İki iş: iki <code>DateTime</code> arasındaki farkı dakikaya çevirmek ve girişin gece penceresinde olup olmadığına karar vermek. Pencere gece yarısını aşıyor: ya <code>22:00</code> ve sonrası ya da <code>06:00</code>'dan önce."</td></tr><tr><td class="nw">Fener</td><td>"<code>giris.TimeOfDay</code> ile <code>TimeSpan.FromHours(22)</code> karşılaştır. 'Girişten sonraki ilk 06:00' için <code>giris.Date.AddHours(6)</code> kur; giriş 22:00'den sonraysa bir gün ekle. Çıkış bu sabahı aşmıyorsa 150."</td></tr><tr><td class="nw">Taslak</td><td><code>cikis &lt; giris -&gt; hata(cikis)</code> / <code>dakika = fark</code> / <code>dakika == 0 -&gt; 0</code> / <code>geceGirisi mi?</code> / <code>sabah = ilk 06:00</code> / <code>cikis &lt;= sabah -&gt; 150</code> / <code>aksi: L1(dakika)</code></td></tr><tr><td class="nw">Örnek</td><td>"Mesai saati (09:00–18:00): <code>t.TimeOfDay &gt;= TimeSpan.FromHours(9) &amp;&amp; t.TimeOfDay &lt; TimeSpan.FromHours(18)</code>. 08:59 false, 09:00 true, 17:59 true, 18:00 false." (doğrulandı: <code>ORN-L4</code>)</td></tr></tbody></table></div><p><strong>Referans çözüm</strong> (<code>Otopark</code> sınıfında, L1 metodunun yanına eklenen aşırı yükleme; L1 metodu aynen durur).</p><pre class="code" data-lang="cs"><code>public static int UcretHesapla(DateTime giris, DateTime cikis)
+{
+    if (cikis &lt; giris)
+        throw new ArgumentOutOfRangeException(nameof(cikis), cikis, "Çıkış girişten önce olamaz.");
+
+    int dakika = (int)(cikis - giris).TotalMinutes;
+    if (dakika == 0) return 0;
+
+    TimeSpan saat = giris.TimeOfDay;
+    bool geceGirisi = saat &gt;= TimeSpan.FromHours(22) || saat &lt; TimeSpan.FromHours(6);
+    if (geceGirisi)
+    {
+        DateTime sabah = giris.Date.AddHours(6);          // girişten sonraki ilk 06:00
+        if (saat &gt;= TimeSpan.FromHours(22)) sabah = sabah.AddDays(1);
+        if (cikis &lt;= sabah) return 150;                   // gece tarifesi: sabit
+    }
+    return UcretHesapla(dakika);                          // aksi halde L1 tarifesi
+}</code></pre><p><strong>Tuzaklar</strong> (dotnet'te çalıştırıldı, §9). <code>giris.Hour &gt;= 22 &amp;&amp; giris.Hour &lt; 6</code> hiçbir saati kapsamaz (gece yarısı boşluğu) ve gece vakalarının hepsini kırar: kalan A1, A4, G2, G6. <code>cikis &lt; sabah</code> (06:00 çıkışını dışarıda bırakmak) yalnızca A4 ve G6'yı kırar. <code>(cikis - giris).Minutes</code> (toplam değil bileşen) A1, A3, A4, G1, G2, G3, G5'i kırar. Gece girişini yalnızca aynı takvim gününde tanımak A1 ve A4'ü kırar (gece yarısını aşan kalış). Referans çözümün <code>DateTime</code> sürümü 200 çift üzerinde aritmetik bir eşdeğeriyle (trafik profili hesabında kullanılan) karşılaştırıldı: fark 0.</p>
+</details>
+<details class="acc"><summary id="b5-3-16-otopark-l5-kapasite-ve-kuyruk">3.16 Otopark L5 — Kapasite ve Kuyruk</summary>
+<p><strong>Kapı.</strong> Yükseltme 5.000 B, 600 XP; kavram Finans dersi (durum taşıyan sınıf, <code>Queue&lt;T&gt;</code>, <code>Task</code>). Gelir 1.440 B/gün (60 B/saat). Görsel ek: otomat, "DOLU/BOŞ" sayacı, bekleme şeridi.</p><blockquote class="musteri"><p>"Kapasitem 50 araç. Doluysa kapıda bekleyenler sıraya girsin, en fazla 10 araç; sıra da doluysa 'yer yok' deyip çevir. Biri çıkınca sıradaki ilk araç içeri girsin. Sıradan vazgeçen olursa onu sıradan sil."</p><cite>Hasan Abi</cite></blockquote><p>İş Emri iki parçadır: <strong>(a)</strong> senkron yönetici ve <strong>(b)</strong> <code>Task</code> ile bekleme. İkisi de 600 XP'ye dâhildir.</p><p><strong>Sözleşme (a).</strong></p><ol><li>Sınıf <code>KapasiteYoneticisi(int kapasite = 50, int kuyrukLimiti = 10)</code>. <code>Giris(string plaka) : GirisSonucu { Kabul, Kuyrukta, Reddedildi, Zaten }</code>. <code>Cikis(string plaka) : CikisSonucu { Cikti, KuyrukVazgecti, Bilinmiyor }</code>. Özellikler: <code>Iceride</code> (int) ve <code>Kuyruk</code> (sıralı, salt okunur liste).</li><li>Plaka içeride ya da kuyruktaysa <code>Zaten</code>; durum değişmez.</li><li>Yer varsa <code>Kabul</code>; yer yoksa ve kuyruk limiti dolmamışsa <code>Kuyrukta</code>; ikisi de doluysa <code>Reddedildi</code>.</li><li>İçerideki araç çıkınca <code>Cikti</code>; kuyruk boş değilse <strong>ilk gelen</strong> araç içeri alınır (ilk giren ilk çıkar).</li><li>Kuyruktaki plaka <code>Cikis</code> çağırırsa <code>KuyrukVazgecti</code>, kalan sıra korunur. Hiçbirinde olmayan plaka <code>Bilinmiyor</code>.</li><li>Her senaryo yeni örnekle başlar (durum sızmaz).</li></ol><div class="tablewrap"><table><thead><tr><th>Açık</th><th>kap/kuyruk</th><th>işlemler (G giriş, C çıkış)</th><th>Beklenen sonuçlar · içeride · kuyruk</th></tr></thead><tbody><tr><td class="nw">A1</td><td>2 / 1</td><td>G:A G:B</td><td>Kabul, Kabul · 2 · []</td></tr><tr><td class="nw">A2</td><td>2 / 1</td><td>G:A G:B G:C</td><td>Kabul, Kabul, Kuyrukta · 2 · [C]</td></tr><tr><td class="nw">A3</td><td>2 / 1</td><td>G:A G:B G:C G:D</td><td>Kabul, Kabul, Kuyrukta, Reddedildi · 2 · [C]</td></tr><tr><td class="nw">A4</td><td>2 / 2</td><td>G:A G:B G:C G:D C:A</td><td>Kabul, Kabul, Kuyrukta, Kuyrukta, Cikti · 2 · [D]</td></tr><tr><td class="nw">A5</td><td>1 / 1</td><td>G:A G:A</td><td>Kabul, Zaten · 1 · []</td></tr></tbody></table></div><div class="tablewrap"><table><thead><tr><th>Gizli</th><th>kap/kuyruk</th><th>işlemler</th><th>Beklenen sonuçlar · içeride · kuyruk</th></tr></thead><tbody><tr><td class="nw">G1</td><td>1 / 3</td><td>G:A G:B G:C G:D C:A C:B</td><td>Kabul, Kuyrukta, Kuyrukta, Kuyrukta, Cikti, Cikti · 1 · [D] (FIFO)</td></tr><tr><td class="nw">G2</td><td>1 / 2</td><td>G:A G:B G:C C:B C:A</td><td>Kabul, Kuyrukta, Kuyrukta, KuyrukVazgecti, Cikti · 1 · []</td></tr><tr><td class="nw">G3</td><td>2 / 1</td><td class="nw">C:X</td><td>Bilinmiyor · 0 · []</td></tr><tr><td class="nw">G4</td><td>varsayılan 50 / 10</td><td>61 farklı plaka girişi</td><td>Kabul = 50, Kuyrukta = 10, Reddedildi = 1 · içeride 50 · kuyruk 10</td></tr><tr><td class="nw">G5</td><td>1 / 2</td><td>G:A G:B G:B</td><td>Kabul, Kuyrukta, Zaten · 1 · [B]</td></tr></tbody></table></div><p><strong>Sözleşme (b).</strong> <code>AsyncKapasite(int kapasite)</code>; <code>Task&lt;GirisSonucu&gt; GirisBekleAsync()</code> yer varsa tamamlanmış <code>Kabul</code> döner, yoksa yer açılana kadar tamamlanmaz; <code>void Cikis()</code> bekleyenlerin ilkini (ilk giren ilk çıkar) tamamlar, yoksa yeri boşaltır. Testler: kap = 1 iken ilk giriş <code>IsCompleted = true</code>; ikinci giriş <code>IsCompleted = false</code>; <code>Cikis()</code> sonrası ikincisi <code>Kabul</code> ile tamamlanır (A1–A3); üç bekleyen ve iki çıkışta yalnızca ilk iki bekleyen sırayla tamamlanır (G1).</p><div class="tablewrap"><table><thead><tr><th>Kademe</th><th>İpucu</th></tr></thead><tbody><tr><td class="nw">Pusula</td><td>"Bu iş bir <em>durum</em> tutuyor: içeride kim var, sırada kim bekliyor. Tek bir metot değil, bir nesne yazıyorsun."</td></tr><tr><td class="nw">Fener</td><td>"İçeridekiler için <code>HashSet&lt;string&gt;</code>, sıra için 'ilk giren ilk çıkar' mantığı: <code>Queue&lt;string&gt;</code> ya da baştan silen bir <code>List&lt;string&gt;</code>. Sıradan vazgeçen ortadan çıkabilir; hangi tip bunu kolay yapıyor?"</td></tr><tr><td class="nw">Taslak</td><td><code>Giris: içeride/kuyrukta -&gt; Zaten; yer var -&gt; Kabul; kuyruk boş yer -&gt; Kuyrukta; yoksa Reddedildi</code> / <code>Cikis: içerideyse çıkar, kuyruğun ilkini al; kuyruktaysa sil; değilse Bilinmiyor</code></td></tr><tr><td class="nw">Örnek</td><td>"Asansör kuyruğu: <code>Queue&lt;string&gt;</code>; <code>Enqueue("a")</code>, <code>Enqueue("b")</code>, <code>Dequeue()</code> → <code>"a"</code>, geriye <code>Count = 1</code>." (doğrulandı: <code>ORN-L5</code>)</td></tr></tbody></table></div><p><strong>Referans çözüm.</strong></p><pre class="code" data-lang="cs"><code>public enum GirisSonucu { Kabul, Kuyrukta, Reddedildi, Zaten }</code></pre><pre class="code" data-lang="cs"><code>public enum CikisSonucu { Cikti, KuyrukVazgecti, Bilinmiyor }</code></pre><pre class="code" data-lang="cs"><code>public sealed class KapasiteYoneticisi
+{
+    private readonly int _kapasite;
+    private readonly int _kuyrukLimiti;
+    private readonly HashSet&lt;string&gt; _iceride = new();
+    private readonly List&lt;string&gt; _kuyruk = new();   // FIFO: başa ekleme yok, baştan alma var
+
+    public KapasiteYoneticisi(int kapasite = 50, int kuyrukLimiti = 10)
+    {
+        _kapasite = kapasite;
+        _kuyrukLimiti = kuyrukLimiti;
+    }
+
+    public int Iceride =&gt; _iceride.Count;
+    public IReadOnlyList&lt;string&gt; Kuyruk =&gt; _kuyruk;
+
+    public GirisSonucu Giris(string plaka)
+    {
+        if (_iceride.Contains(plaka) || _kuyruk.Contains(plaka)) return GirisSonucu.Zaten;
+        if (_iceride.Count &lt; _kapasite) { _iceride.Add(plaka); return GirisSonucu.Kabul; }
+        if (_kuyruk.Count &lt; _kuyrukLimiti) { _kuyruk.Add(plaka); return GirisSonucu.Kuyrukta; }
+        return GirisSonucu.Reddedildi;
+    }
+
+    public CikisSonucu Cikis(string plaka)
+    {
+        if (_iceride.Remove(plaka))
+        {
+            if (_kuyruk.Count &gt; 0)
+            {
+                _iceride.Add(_kuyruk[0]);   // sıradaki ilk araç içeri
+                _kuyruk.RemoveAt(0);
+            }
+            return CikisSonucu.Cikti;
+        }
+        if (_kuyruk.Remove(plaka)) return CikisSonucu.KuyrukVazgecti;
+        return CikisSonucu.Bilinmiyor;
+    }
+}</code></pre><pre class="code" data-lang="cs"><code>public sealed class AsyncKapasite
+{
+    private readonly int _kapasite;
+    private int _iceride;
+    private readonly Queue&lt;TaskCompletionSource&lt;GirisSonucu&gt;&gt; _bekleyen = new();
+    private readonly object _kilit = new();
+
+    public AsyncKapasite(int kapasite) =&gt; _kapasite = kapasite;
+
+    public Task&lt;GirisSonucu&gt; GirisBekleAsync()
+    {
+        lock (_kilit)
+        {
+            if (_iceride &lt; _kapasite) { _iceride++; return Task.FromResult(GirisSonucu.Kabul); }
+            var tcs = new TaskCompletionSource&lt;GirisSonucu&gt;(TaskCreationOptions.RunContinuationsAsynchronously);
+            _bekleyen.Enqueue(tcs);
+            return tcs.Task;
+        }
+    }
+
+    public void Cikis()
+    {
+        lock (_kilit)
+        {
+            if (_bekleyen.Count &gt; 0) _bekleyen.Dequeue().SetResult(GirisSonucu.Kabul);   // yer doğrudan devredilir
+            else _iceride--;
+        }
+    }
+}</code></pre><p><strong>Tuzaklar.</strong> <code>Queue&lt;T&gt;</code> ortadan silmeyi desteklemez; vazgeçen aracı silmek için kuyruğu yeniden kurmak ya da <code>List&lt;T&gt;</code> kullanmak gerekir (G2). Çıkışta kuyruktan <em>son</em> geleni almak G1'i kırar: dotnet çalıştırmasında sonuç <code>[Kabul, Kuyrukta, Kuyrukta, Kuyrukta, Cikti, KuyrukVazgecti]</code>, içeride 1, kuyruk <code>[C]</code> çıktı (beklenen <code>[…, Cikti, Cikti]</code>, kuyruk <code>[D]</code>). Varsayılan değerleri 50 ve 10 yapmamak G4'ü kırar. Asenkron tarafta <code>TaskCompletionSource</code> senkron devam ettirirse kilit altında beklenmedik yeniden giriş olur; referans çözüm <code>RunContinuationsAsynchronously</code> kullanır.</p>
+</details>
+<h3 id="b5-7-mufettis-sikayet-balonlari-ve-hata-bildirimi">7. Müfettiş şikâyet balonları ve Hata Bildirimi</h3>
+<p><strong>Müfettiş</strong> gizli testleri çalıştırır, şikâyet balonlarını ve Hata Bildirimi dosyalarını getirir (KANON §10). B1 §8.3 onu sessiz, bej trençkotlu ve elinde renkli dosyalı bir NPC olarak çizer (yeşil: geçti, kırmızı: Kararmış, sarı: Hata Bildirimi). Bu bölüm iki şeyi belirler: gizli test kalınca oyuncuya <strong>ne söylendiğini</strong> (girdi söylenmeden) ve <strong>Hata Bildirimi</strong> görevinin tam akışını.</p>
+<h4 id="b5-7-1-sikayet-kategorileri-ve-balon-metinleri">7.1 Şikâyet kategorileri ve balon metinleri</h4>
+<p>Bir balon tek bir girdiyi değil, müşterinin kendi sözcükleriyle bir <strong>bölgeyi</strong> söyler. Otopark L1 için sekiz kategori vardır ve <code>Kategori.Bul(dakika)</code> her açık, gizli ve tohumlu vakayı bunlardan birine yerleştirir. Aşağıdaki tablo dotnet çıktısından alınmıştır (§9).</p><div class="tablewrap"><table><thead><tr><th>Kategori</th><th>Aralık (dk)</th><th>Sabit vakalar</th><th>"Fazla ücret" balonu</th><th>"Eksik ücret" balonu</th></tr></thead><tbody><tr><td class="nw"><code>hemen-cikanlar</code></td><td class="nw">0–5</td><td>G1, G2</td><td>Bir müşteri: "girip hemen çıkan müşteriler için fazla ücret ödedim."</td><td>Bir müşteri: "girip hemen çıkan müşteriler için ücret eksik hesaplanmış."</td></tr><tr><td class="nw"><code>iki-saatten-az</code></td><td class="nw">6–99</td><td>A1, A2, G3, G4</td><td>Bir müşteri: "2 saatten az kalanlar için fazla ücret ödedim."</td><td>Bir müşteri: "2 saatten az kalanlar için ücret eksik hesaplanmış."</td></tr><tr><td><code>iki-saat-civari</code></td><td class="nw">100–140</td><td>A3, A4, G5</td><td>Bir müşteri: "2 saat civarı kalanlar için fazla ücret ödedim."</td><td>Bir müşteri: "2 saat civarı kalanlar için ücret eksik hesaplanmış."</td></tr><tr><td class="nw"><code>iki-alti-arasi</code></td><td class="nw">141–340</td><td class="nw">G6</td><td>Bir müşteri: "2–6 saat arası kalanlar için fazla ücret ödedim."</td><td>Bir müşteri: "2–6 saat arası kalanlar için ücret eksik hesaplanmış."</td></tr><tr><td><code>alti-saat-civari</code></td><td class="nw">341–380</td><td>A5, G7, G8</td><td>Bir müşteri: "6 saat civarı kalanlar için fazla ücret ödedim."</td><td>Bir müşteri: "6 saat civarı kalanlar için ücret eksik hesaplanmış."</td></tr><tr><td class="nw"><code>gunluk-tarife</code></td><td class="nw">381–1399</td><td class="nw">G9</td><td>Bir müşteri: "6–24 saat arası kalanlar için fazla ücret ödedim."</td><td>Bir müşteri: "6–24 saat arası kalanlar için ücret eksik hesaplanmış."</td></tr><tr><td class="nw"><code>bir-gun-civari</code></td><td class="nw">1400–1480</td><td>A6, G10, G11</td><td>Bir müşteri: "24 saat civarı kalanlar için fazla ücret ödedim."</td><td>Bir müşteri: "24 saat civarı kalanlar için ücret eksik hesaplanmış."</td></tr><tr><td class="nw"><code>gunu-asanlar</code></td><td class="nw">1481+</td><td>G12, G13, G14</td><td>Bir müşteri: "24 saati aşanlar için fazla ücret ödedim."</td><td>Bir müşteri: "24 saati aşanlar için ücret eksik hesaplanmış."</td></tr></tbody></table></div><ul><li><strong>İstisna balonu</strong> (tüm kategoriler için aynı kalıp): Bariyer ekranı: "2 saat civarı kalanlar için sistem hata verdi."</li><li><strong>Zaman aşımı balonu</strong> (tüm kategoriler için aynı kalıp): Bariyer ekranı: "2 saat civarı kalanlar için cevap gelmedi."</li></ul><p><strong>Sızıntı kuralları.</strong></p><ol><li>Balon metni yalnızca müşterinin cümlesindeki sözcükleri kullanır ("2 saat", "6 saat", "24 saat", "girip hemen çıkan"). Hiçbir yüzeyde 119, 359 gibi bir <strong>sayısal girdi</strong> yazılmaz.</li><li>Bir kategori, sabit 20 vaka ve oyuncunun tohumlu 6 vakası birlikte sayıldığında <strong>en az 2 vaka</strong> içerir (CI kuralı 22; 10.000 oyuncuda 0 ihlal). Tek vakalı bir kategori girdiyi ele verirdi. Dikkat: <code>iki-alti-arasi</code> ve <code>gunluk-tarife</code> yalnızca bir sabit vaka içerir (G6; G9); onları T5 ve T3 tohumlu vakaları tamamlar (T3 aralığı bu yüzden [381, 1.399] seçildi).</li><li>Balon <strong>yönü</strong> söyler (fazla ücret / eksik ücret), <strong>miktarı</strong> söylemez. İstisna fırlatan çözüm için "sistem hata verdi", zaman aşımı için "cevap gelmedi" balonu çıkar.</li><li>Aynı gün aynı kategori için tek balon çıkar; balonun tonu hiç sertleşmez (A-vizyon-FINAL ilke 9: hata ceza değil, hikâyedir).</li><li>Balon yalnızca <strong>Deneme</strong> durumunda ve yalnızca sahibe görünür, 20 saniyede bir (B1 §6.3); ziyaretçi "DENEME" bandını görür, balonu görmez.</li><li>Müfettiş yalnızca açık testler 6/6 iken ve günde en çok 10 kez çağrılır (§1.6); aksi halde balon bir "oracle" olurdu.</li></ol><p><strong>Bir Müfettiş raporu nasıl görünür?</strong> Aşağıda M4 mutasyonuyla (gün: <code>taban + 1</code>) yazılmış bir çözümün raporu verilmiştir: açık ve tohumlu testler yeşil, iki gizli vaka kırmızı; oyuncu yalnızca iki balonu görür, "sunucu günlüğü" satırları istemciye gitmez.</p><pre class="code" data-lang="txt"><code>   [M4 gün: ceil→'taban+1'] açık 6/6 · gizli 12/14 · tohumlu 6/6 → durum: DENEME (%50 gelir)
+      balon (girdi gizli): Bir müşteri: "24 saat civarı kalanlar için fazla ücret ödedim."
+      balon (girdi gizli): Bir müşteri: "24 saati aşanlar için fazla ücret ödedim."
+      sunucu günlüğü (istemciye gitmez): G11 gizli dakika=1440 beklenen=250 gercek=500
+      sunucu günlüğü (istemciye gitmez): G12 gizli dakika=2880 beklenen=500 gercek=750</code></pre><p>Aynı çalıştırmada açık testi kırmızı olan çözümler (M1, M5, E1) Müfettiş'e gönderilemez; yalnızca açık testler gösterilir. Açık testleri ezberleyen çözüm (E13) 8 balonun hepsini alır: ezberi kırmak için her bölgeden en az bir vaka vardır.</p>
+<h4 id="b5-7-2-hata-bildirimi-gorevi-tam-ornek">7.2 Hata Bildirimi görevi: tam örnek</h4>
+<p><strong>Akış.</strong> Müfettiş oyuncunun posta kutusuna sarı bir dosya bırakır (B1: Hurdacı Avlusu teslim noktası); dosyada tek resmî cümle vardır. Oyuncu (1) sentetik hatalı kodu okur, (2) şüpheli satırı işaretler, (3) düzeltir, (4) nedenini <strong>tek cümleyle</strong> yazar. Kod "başkasının" gibi sunulur ama sistem tarafından üretilir; gerçek oyuncu kodu hiçbir zaman kullanılmaz. Süre 4–6 dakikadır (B2 §4.1).</p><p><strong>Örnek: <code>otopark-HB-M4</code> (Orta, 60 B, 40 XP).</strong> Müfettiş: <em>"Müşteri 1.440 dakika için 500 TL ödemiş."</em> Oyuncuya gösterilen hatalı kod referans çözüme tek mutasyon enjekte edilmiş hâldir:</p><pre class="code" data-lang="cs"><code>public static int M4(int dakika)   // 'ceil' → 'taban + 1' (gün hesabı)
+{
+    if (dakika &lt;= 0) return 0;
+    int saat = (dakika + 59) / 60;
+    if (dakika &lt; 120) return saat * 100;
+    if (dakika &lt;= 360) return saat * 40;
+    int gun = dakika / 1440 + 1;
+    return gun * 250;
+}</code></pre><p>Hatalı satır: <code>int gun = dakika / 1440 + 1;</code> (işaretlenecek satır). Beklenen düzeltme: <code>int gun = (dakika + 1439) / 1440;</code>. Beklenen açıklama (iyi cevap): <em>"1440 dakika tam bir gün, ama <code>dakika / 1440 + 1</code> onu 2 gün sayıyor; başlayan günü bulmak için <code>(dakika + 1439) / 1440</code> yazılmalı."</em> Bu hata yalnızca tam gün katlarında (1.440, 2.880, 4.320…) yanlış sonuç verir; 1.441 ve 2.881 doğru çıkar (§9, HB-1…HB-5). Bu yüzden müşteri cümlesi, oyuncuya hatanın nerede olduğunu söyleyen <em>tek</em> ipucudur.</p><p><strong>Puanlama.</strong> Toplam 100 puandır; üç bileşenin ikisi deterministiktir, biri Kurul'dur.</p><div class="tablewrap"><table><thead><tr><th>Bileşen</th><th class="num">Puan</th><th>Kim karar verir</th><th>Kural</th></tr></thead><tbody><tr><td>Satır bulma</td><td class="num nw">30</td><td>sandbox (deterministik)</td><td>işaretlenen satır mutasyon satırıyla aynı → 30; ±1 satır → 15; başka → 0</td></tr><tr><td class="nw">Düzeltme</td><td class="num nw">40</td><td class="nw">sandbox</td><td>düzeltilmiş kod 26 vakanın hepsini geçerse 40; açıklar yeşil ama gizli kırmızıysa 20; derlenmezse 0</td></tr><tr><td class="nw">Neden</td><td class="num nw">30</td><td class="nw">Kurul</td><td>tek cümle, rubrik (Doğruluk 50 / Tamlık 30 / Açıklık 20) puanı × 0,30</td></tr></tbody></table></div><p><strong>Ödül.</strong> Toplam ≥ 70 → tam ödül; 40–69 → yarım ödül; &lt; 40 → 0 (ceza yok, XP geri alınmaz). XP T1'de 40'tır (KANON §3.3; yarımda 20). Bayt tabanı mutasyonun zorluk sınıfına bağlıdır (B5 önerisi): Kolay 40, Orta 60, Zor 90, Uzman 120 B (§3.11); sekiz mutasyonun ortalaması 63,75 B'dir (B2 §5.1: ortalama ≈60). Günde 3 görev × en çok 120 B = 360 B üst sınırı B2 §5.1'in "günlük üst sınır 360" değeriyle aynıdır.</p><p>Dört örnek oyuncu (dotnet'te hesaplandı, §9 <code>HB-P</code>; Kurul puanları açıklayıcı değerlerdir ve altın kümeye aday olarak işaretlenir):</p><div class="tablewrap"><table><thead><tr><th>Oyuncu</th><th>Satır</th><th>Düzeltme</th><th>Neden cevabı (Kurul)</th><th class="num">Toplam</th><th>Ödül</th></tr></thead><tbody><tr><td class="nw">A</td><td>doğru (30)</td><td>tam (40)</td><td>"1440 dakika tam bir gün, ama <code>+ 1</code> onu 2 gün sayıyor; … <code>(dakika + 1439) / 1440</code> …" (90 → 27)</td><td class="num nw">97</td><td>tam: 60 B, 40 XP</td></tr><tr><td class="nw">B</td><td>doğru (30)</td><td>tam (40)</td><td>"Gün yanlış hesaplanıyordu." (20 → 6)</td><td class="num nw">76</td><td>tam: 60 B, 40 XP</td></tr><tr><td class="nw">C</td><td>±1 satır (15)</td><td>gizli kırmızı (20)</td><td>"Gün hesabında artı bir var, fazla." (50 → 15)</td><td class="num nw">50</td><td>yarım: 30 B, 20 XP</td></tr><tr><td class="nw">D</td><td>yanlış satır (0)</td><td>derlenmedi (0)</td><td>"Bilmiyorum, bir yeri değiştirdim." (35 → 11)</td><td class="num nw">11</td><td>yok: 0 B, 0 XP</td></tr></tbody></table></div><p>B oyuncusu bilinçli bir tasarımı gösterir: satırı ve düzeltmesi doğru, nedeni zayıf olan oyuncu yine de 76 puanla tam ödül alır, çünkü hata ayıklamanın asıl kanıtı düzeltmenin tüm testleri geçmesidir; ama "neden" Kurul'a gittiği için zayıf cevaba Kurul'un geri bildirimi (1 doğru + 1 eksik + 1 sonraki adım) gelir.</p><p><strong>Maliyet ve kötüye kullanım.</strong> Günde 3 görev, Kurul kotasından günde en çok 3 çağrı alır (≈3 × 0,0033 = 0,01 $). Aynı mutasyon aynı oyuncuya 7 gün içinde tekrarlanmaz. Düzeltme sandbox'ta 26 vakayla (görev tohumundan 6 tohumlu dâhil) çalışır: yalnızca açık testleri geçiren bir yama 20 puan alır. Sekiz mutasyonun Müfettiş cümlelerinin hepsi dotnet'te doğrulandı (§9, <code>HB-M1</code>…<code>HB-M8</code>; cümleler §3.11 tablosundadır).</p>
+<h3 id="b5-8-kopya-paylasim-ve-cozum-cesitliligi">8. Kopya, paylaşım ve çözüm çeşitliliği</h3>
+<p>A-vizyon-FINAL ilke 9: "kopyayı yakalamak yerine anlamsız kıl". Otopark L1 gibi kısa ve herkesin bildiği bir problemde çözüm sızar; bunu önlemek mümkün değildir. Bu bölüm iki soruya cevap verir: sızan çözümün oyuncuya ve ekonomiye kazandıracağı şey nedir, ve <strong>doğru çözümler birbirine ne kadar benzer olabilir</strong> (kopya dedektörünü yanıltmaması için).</p>
+<h4 id="b5-8-1-risk-tablosu">8.1 Risk tablosu</h4>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>Risk</th><th>Etki</th><th>Karşı önlem</th><th>Kalıntı</th></tr></thead><tbody><tr><td class="nw">R1</td><td>Vitrin'den (L2+) çözüm kopyalama</td><td>Kopyalayan açılış XP'si alır</td><td>Savunma satırı <strong>kopyalayanın kendi</strong> kodundan seçilir ve somut girdiyle sorulur; AST benzerliği &gt; %95 ya da yazım &lt; 30 sn → Savunma zorunlu, Bayt sonra ödenir (KANON §9); tohumlu vakalar oyuncuya özel</td><td>Kopyalayıp kodu gerçekten okuyup açıklayan geçer; bu "öğrenme" sayılır</td></tr><tr><td class="nw">R2</td><td>Discord, video ya da forumda çözüm paylaşımı</td><td>Çözüm kamusal olur</td><td>Aynı: Savunma + tohumlu + referans tavanı (kopya gelir <em>artırmaz</em>, doğruysa aynı geliri verir). "En Hızlı Otopark" tablosu (Liderlik #22) yalnızca <code>kopya_suphesi = false</code> kayıtları alır</td><td>Kısa problemde sızıntı kaçınılmaz</td></tr><tr><td class="nw">R3</td><td>AI asistanına "Otopark ücreti yaz" demek</td><td>Doğru kod saniyeler içinde gelir</td><td>Müşteri isteği + sözleşme + Savunma + Semt Sınavı (3 kod + 3 soru, 20 dk, interleaving); Hata Bildirimi ve Günlük Tekrar kodu <em>okumayı</em> ister; kod yazmak tek ölçü değildir</td><td>Yüksek; ağırlık Savunma ve sınavdadır</td></tr><tr><td class="nw">R4</td><td>Açık testleri ezberleme (E13)</td><td>Açık testler yeşil</td><td>14 gizli + 6 tohumlu vaka; ezber çözüm 26 vakadan 7'sini geçer (6 açık + G1), 8 balonun hepsini alır, sentetik trafikte günde −2.204 TL (gelir ≈ 0)</td><td class="nw">Yok</td></tr><tr><td class="nw">R5</td><td>Gizli testlerin zamanla toplanması</td><td>14 sabit vaka herkese bilinir</td><td>Sabit gizli vakalar KANON'dur (değişmez); tohumlu 6 vaka her gün ve oyuncuya özeldir; ezberlenen 20 değer gerçek trafikte nadir görülür</td><td class="nw">Düşük</td></tr><tr><td class="nw">R6</td><td>Müfettiş'i "oracle" yapma</td><td>Kategori balonlarından gizli girdiyi bulma</td><td>Müfettiş açık testler yeşil olmadan çalışmaz, günde 10 çağrı (Ek A), balon yalnızca kategori ve yön söyler (§7.1). Tek bir gizli girdiyi 1.400 dakikalık bir aralıkta ikili aramayla bulmak ≈ 10–11 çağrı ister: günde bir girdi</td><td class="nw">Düşük</td></tr><tr><td class="nw">R7</td><td>Dengeleyici hata ile tavandan yararlanma</td><td>Eksik ve fazla ücret birbirini götürür</td><td>Toplam tavan referansın %95,7'sini verir; araç başına tavan %88,1 (§3.12, Ek A)</td><td class="nw">Düşük</td></tr><tr><td class="nw">R8</td><td>Yapıştırma telemetrisinin yanlış pozitifi</td><td>Dürüst oyuncuya "Bayt sonra"</td><td>Kısa metotta dürüst çözümler birbirinin aynısı olabilir (§8.2); AST tek başına karar vermez</td><td class="nw">Orta</td></tr></tbody></table></div>
+<h4 id="b5-8-2-ast-benzerligi-l1-de-neden-tek-basina-yetmez">8.2 AST benzerliği L1'de neden tek başına yetmez</h4>
+<p>Referans çözümün gövdesi altı deyimdir ve ipucu merdiveni "Taslak" kademesinde aynı iskeleti verir. Taslak'tan yazan iki dürüst oyuncunun kodu, tanımlayıcı ve sabitler maskelenerek karşılaştırıldığında neredeyse özdeş olur. KANON'un "AST benzerliği &gt; %95" kuralı bu yüzden Otopark L1'de çok sayıda dürüst oyuncuyu "şüpheli" işaretler. Maliyet düşüktür (Savunma zaten zorunludur; yalnızca Bayt Savunma'ya kadar bekler), ama iki yan etki önlenmelidir: (1) <code>kopya_suphesi</code> bayrağı yalnızca AST benzerliği <strong>ve</strong> telemetri birlikte (yapıştırma olayı kodun ≥ %80'ini tek seferde getirmişse ya da yazım &lt; 30 sn) konmalı; AST tek başına yalnızca "önce Savunma"yı tetiklemeli; (2) "En Hızlı Otopark" tablosuna yalnızca bayraksız kayıtlar girmeli. Öneri B3 (kopya tespiti) ve B7 (telemetri) ile hizalanır (Açık Soru 3).</p>
+<h4 id="b5-8-3-cozum-cesitliligi-alti-dogru-cozum-bicimi">8.3 Çözüm çeşitliliği: altı doğru çözüm biçimi</h4>
+<p>KANON'un if/else referansının (A) yanında beş doğru çözüm daha yazıldı (B–F). Altısı da 26 vakanın (20 sabit + 6 tohumlu) 26'sını geçti ve 0–300.000 dakika süpürmesinde referansla <strong>sıfır sapma</strong> verdi.</p><div class="tablewrap"><table><thead><tr><th>Biçim</th><th>Yapı</th><th>Vaka (26)</th><th class="num">0–300.000 dk süpürmesi, referansla sapma</th></tr></thead><tbody><tr><td>A — KANON referansı</td><td><code>if</code> zinciri, <code>(dakika + 59) / 60</code></td><td>26 / 26</td><td class="num">— (referansın kendisi)</td></tr><tr><td>B — switch ifadesi</td><td><code>switch</code> ifadesi, ilişkisel desenler</td><td>26 / 26</td><td class="num nw">0</td></tr><tr><td>C — tablo / aralık</td><td>tablo + tek döngü</td><td>26 / 26</td><td class="num nw">0</td></tr><tr><td>D — döngü sayacı</td><td>döngü sayacı (<code>for</code>)</td><td>26 / 26</td><td class="num nw">0</td></tr><tr><td>E — double + Ceiling</td><td><code>double</code> + <code>Math.Ceiling</code></td><td>26 / 26</td><td class="num nw">0</td></tr><tr><td>F — üçlü koşul</td><td>iç içe <code>? :</code></td><td>26 / 26</td><td class="num nw">0</td></tr></tbody></table></div><p><strong>B — <code>switch</code> ifadesi (ilişkisel desenler).</strong> Koşul zinciri yerine değer ifadesi.</p><pre class="code" data-lang="cs"><code>public static int SwitchIfadesi(int dakika)
+{
+    int saat = (dakika + 59) / 60;
+    int gun = (dakika + 1439) / 1440;
+    return dakika switch
+    {
+        &lt;= 0 =&gt; 0,
+        &lt; 120 =&gt; saat * 100,
+        &lt;= 360 =&gt; saat * 40,
+        _ =&gt; gun * 250
+    };
+}</code></pre><p><strong>C — tablo / aralık tabanlı.</strong> Tarife veridir; algoritma tek döngüdür. Yeni dilim eklemek tek satırdır (Otopark L2–L4'te evrilmeye en yatkın biçim).</p><pre class="code" data-lang="cs"><code>private static readonly (int UstSinir, int Birim, int BirimUcret)[] Tarife =
+{
+    (119,          60,  100),   // 1. dilim: 1–119 dk, başlayan saat × 100
+    (360,          60,   40),   // 2. dilim: 120–360 dk, başlayan saat × 40
+    (int.MaxValue, 1440, 250),  // günlük: başlayan gün × 250
+};</code></pre><pre class="code" data-lang="cs"><code>public static int Tablo(int dakika)
+{
+    if (dakika &lt;= 0) return 0;
+    foreach (var (ust, birim, ucret) in Tarife)
+        if (dakika &lt;= ust)
+            return (dakika + birim - 1) / birim * ucret;
+    return 0; // erişilmez
+}</code></pre><p><strong>D — döngü sayacı.</strong> Başlayan birimi <code>ceil</code> yerine sayarak bulur; Çarşı'nın <code>for</code> döngüsüyle çözülür.</p><pre class="code" data-lang="cs"><code>public static int Dongu(int dakika)
+{
+    if (dakika &lt;= 0) return 0;
+    int birim, ucret;
+    if (dakika &lt; 120) { birim = 60; ucret = 100; }
+    else if (dakika &lt;= 360) { birim = 60; ucret = 40; }
+    else { birim = 1440; ucret = 250; }
+    int sayac = 0;
+    for (int gecen = 0; gecen &lt; dakika; gecen += birim)
+        sayac++;
+    return sayac * ucret;
+}</code></pre><p><strong>E — <code>double</code> ve <code>Math.Ceiling</code>.</strong> Doğru çalışır (n / 60,0 tam katlarda tam sayı verir); CS0121 hatası çıkmaması için <code>/ 60.0</code> yazımı şarttır.</p><pre class="code" data-lang="cs"><code>public static int CiftHassasiyet(int dakika)
+{
+    if (dakika &lt;= 0) return 0;
+    int saat = (int)Math.Ceiling(dakika / 60.0);
+    if (dakika &lt; 120) return saat * 100;
+    if (dakika &lt;= 360) return saat * 40;
+    return (int)Math.Ceiling(dakika / 1440.0) * 250;
+}</code></pre><p><strong>F — iç içe üçlü koşul.</strong> Tek ifade.</p><pre class="code" data-lang="cs"><code>public static int Uclu(int dakika) =&gt;
+    dakika &lt;= 0 ? 0
+    : dakika &lt; 120 ? (dakika + 59) / 60 * 100
+    : dakika &lt;= 360 ? (dakika + 59) / 60 * 40
+    : (dakika + 1439) / 1440 * 250;</code></pre><p>Tasarım sonuçları. <strong>(1)</strong> Altı çözüm dört ayrı yapıyı temsil eder (koşul zinciri ya da üçlü koşul, <code>switch</code> ifadesi, veri tablosu, döngü) ve biri kayan noktayla yazılmıştır; AST benzerliği ölçüsü bu altısını negatif kontrol olarak kullanmalıdır: hiçbiri öbürünün kopyası olarak işaretlenmemeli (benzerlik ölçümü bu belgede <strong>yapılmadı</strong>, Roslyn gerektirir; Açık Soru 3). <strong>(2)</strong> Savunma sorusu çözüm biçimine uyarlanır (§3.7): tablo tabanlı çözümde Kurul <code>+59</code> değil "kodun 121 için kaç TL döndürüyor ve bu sayıyı hangi satır belirliyor?" sorar. <strong>(3)</strong> C ve B, L2–L4 yükseltmelerinde (abone, indirim, gece) daha kolay evrilir; oyuncuya biçim seçtirmek bir tasarım kararıdır, bir tavsiye değil. <strong>(4)</strong> E'nin varlığı Usta Yorumu'na malzeme verir: <em>"<code>double</code> kullanmak zorunda değildin; tam sayı bölmesiyle aynı sonucu alırsın."</em> (kod incelemesi, XP bonusu).</p>
+<h4 id="b5-8-4-ozet-politika">8.4 Özet politika</h4>
+<p>Kısa problemde kopya tamamen engellenemez; sistem (1) kopyanın <strong>ödülünü</strong> küçültür (gelir referans tavanlı, rozetler Savunma ister, bayraklı kayıtta Bayt sonradır), (2) <strong>bedelini</strong> yükseltir (Savunma kendi satırından ve somut girdiyle sorulur), (3) <strong>kodu okumayı</strong> da ölçer (Hata Bildirimi, Vitrin, Günlük Tekrar), (4) Müfettiş'in sızıntısını kapatır ve (5) yanlış pozitifi pahalı yapmaz (ceza yok, XP geri alınmaz).</p>
+<h3 id="b5-9-gercek-calistirma-ciktisi">9. Gerçek Çalıştırma Çıktısı</h3>
+<p>Aşağıdaki çıktı <code>dotnet run -c Release</code> ile üretilmiştir. Ana program <code>Program.cs</code>'tir; yardımcı dosyalar <code>Otopark.cs</code> (referans çözüm, alternatifler, mutasyonlar, hatalar, tohumlu üreteç), <code>Seviyeler.cs</code> (L2–L5), <code>Isletmeler.cs</code> (Büfe, Manav, Kargo ve diğer 16 işletme), <code>Harness.cs</code> (hakem, Müfettiş, Spec doğrulayıcı), <code>Profil.cs</code> (trafik profilleri), <code>Rapor.cs</code> ve <code>otopark-L1.json</code>'dur. Ortam: .NET SDK 10.0.300, çalışma zamanı 10.0.8, <code>net10.0</code>, EF Core InMemory 10.0.14. <strong>Hiçbir satır elle düzenlenmedi.</strong> Çıktının bu belgede kullanıldığı yerler: mutasyon/hata matrisi (§3.8, §3.11), profil tablosu ve gelir etkisi (§3.12), kategori tablosu (§7.1), alternatif çözüm kanıtı (§8.3), tüm test tabloları (§3–§5).</p><p>Okuma rehberi: <code>PASS</code>/<code>FAIL</code> satırı bir vakadır (<code>beklenen</code> KANON ya da Spec'ten, <code>gercek</code> kodun ürettiği değer). <code>==</code> başlıklı bloklar grup başlığıdır; <code>--</code> satırı grup özetidir; satır başında boşlukla başlayan satırlar bilgi satırlarıdır (sayım, ölçüm, tablo). Son satır toplamı verir.</p><pre class="terminal long" tabindex="0">KodKent B5 — dotnet doğrulama çalıştırması
+Çalışma zamanı: .NET 10.0.8
+
+== OTOPARK L1 — 6 açık test (referans çözüm) ==
+PASS A1     dakika=    30 | beklenen=100 gercek=100
+PASS A2     dakika=    61 | beklenen=200 gercek=200
+PASS A3     dakika=   120 | beklenen=80 gercek=80
+PASS A4     dakika=   121 | beklenen=120 gercek=120
+PASS A5     dakika=   361 | beklenen=250 gercek=250
+PASS A6     dakika=  1441 | beklenen=500 gercek=500
+-- OTOPARK L1 — 6 açık test (referans çözüm): 6/6 geçti
+
+== OTOPARK L1 — 14 gizli test (referans çözüm) ==
+PASS G1     dakika=     0 | beklenen=0 gercek=0
+PASS G2     dakika=     1 | beklenen=100 gercek=100
+PASS G3     dakika=    59 | beklenen=100 gercek=100
+PASS G4     dakika=    60 | beklenen=100 gercek=100
+PASS G5     dakika=   119 | beklenen=200 gercek=200
+PASS G6     dakika=   180 | beklenen=120 gercek=120
+PASS G7     dakika=   359 | beklenen=240 gercek=240
+PASS G8     dakika=   360 | beklenen=240 gercek=240
+PASS G9     dakika=   720 | beklenen=250 gercek=250
+PASS G10    dakika=  1439 | beklenen=250 gercek=250
+PASS G11    dakika=  1440 | beklenen=250 gercek=250
+PASS G12    dakika=  2880 | beklenen=500 gercek=500
+PASS G13    dakika=  2881 | beklenen=750 gercek=750
+PASS G14    dakika=100000 | beklenen=17500 gercek=17500
+-- OTOPARK L1 — 14 gizli test (referans çözüm): 14/14 geçti
+
+== OTOPARK L1 — 6 tohumlu test (oyuncu=ayse_kod, gün=2026-11-02, tohum=0x9D8D74B21D8FC748) ==
+PASS T1     dakika=    34 katman=dilim-1-ic | beklenen=100 gercek=100
+PASS T2     dakika=   218 katman=dilim-2-ic | beklenen=160 gercek=160
+PASS T3     dakika=  1205 katman=gunluk-ic | beklenen=250 gercek=250
+PASS T4     dakika= 18539 katman=cok-gunlu-ic | beklenen=3250 gercek=3250
+PASS T5     dakika=   240 katman=saat-siniri | beklenen=160 gercek=160
+PASS T6     dakika= 14401 katman=gun-siniri | beklenen=2750 gercek=2750
+-- OTOPARK L1 — 6 tohumlu test (oyuncu=ayse_kod, gün=2026-11-02, tohum=0x9D8D74B21D8FC748): 6/6 geçti
+
+== OTOPARK L1 — tohumlu kümelerin özellikleri (10.000 oyuncu) ==
+   ayse_kod  2026-11-02  [34, 218, 1205, 18539, 240, 14401]  beklenen TL [100, 160, 250, 3250, 160, 2750]
+   mert.k    2026-11-02  [75, 190, 1306, 19448, 239, 5760]  beklenen TL [200, 160, 250, 3500, 160, 1000]
+   deniz07   2026-11-02  [69, 321, 953, 5513, 300, 7199]  beklenen TL [200, 240, 250, 1000, 200, 1250]
+   ayse_kod  2026-11-03  [94, 332, 776, 3521, 240, 5761]  beklenen TL [200, 240, 250, 750, 160, 1250]
+   10000 oyuncu: 6 değer birbirinden farklı = 10000/10000; 20 sabit testle çakışmayan = 10000/10000; katman aralıkları uygun = 10000/10000
+   T5/T6'dan tam biri tam kat (biri komşu) = 10000/10000; aynı tohum → aynı küme (belirleyici) = 10000/10000; farklı küme sayısı = 10000
+   referans çözüm ile bağımsız (döngü tabanlı) çözüm tüm tohumlu vakalarda uyuşuyor = True
+
+== OTOPARK L1 — alternatif doğru çözümler (20 sabit + 6 tohumlu = 26 vaka her biri) ==
+PASS B      B switch ifadesi   vaka=26/26 süpürme[0..300000] sapma=0 | beklenen=26/26 sapma=0 gercek=26/26 sapma=0
+PASS C      C tablo/aralık     vaka=26/26 süpürme[0..300000] sapma=0 | beklenen=26/26 sapma=0 gercek=26/26 sapma=0
+PASS D      D döngü sayacı     vaka=26/26 süpürme[0..300000] sapma=0 | beklenen=26/26 sapma=0 gercek=26/26 sapma=0
+PASS E      E double+Ceiling   vaka=26/26 süpürme[0..300000] sapma=0 | beklenen=26/26 sapma=0 gercek=26/26 sapma=0
+PASS F      F üçlü koşul       vaka=26/26 süpürme[0..300000] sapma=0 | beklenen=26/26 sapma=0 gercek=26/26 sapma=0
+-- OTOPARK L1 — alternatif doğru çözümler (20 sabit + 6 tohumlu = 26 vaka her biri): 5/5 geçti
+
+== CHALLENGE SPEC doğrulama (otopark-L1.json, içerik CI kuralları) ==
+PASS SPEC   üst düzey alanlar tam ve sıralı | beklenen=id,isletme,seviye,baslik,musteri_istegi,sozlesme_karti,imza,iskelet_kod,public_tests,hidden_tests,seeded_tests,edge_cases,ipucu_merdiveni,savunma_sorulari,rubrik,odul gercek=id,isletme,seviye,baslik,musteri_istegi,sozlesme_karti,imza,iskelet_kod,public_tests,hidden_tests,seeded_tests,edge_cases,ipucu_merdiveni,savunma_sorulari,rubrik,odul
+PASS SPEC   id biçimi ^[a-z0-9]+(-[a-z0-9]+)*-L[1-5]$ | beklenen=True gercek=True
+PASS SPEC   id = isletme-L{seviye} | beklenen=otopark-L1 gercek=otopark-L1
+PASS SPEC   public_tests sayısı | beklenen=6 gercek=6
+PASS SPEC   hidden_tests sayısı | beklenen=14 gercek=14
+PASS SPEC   seeded_tests.adet | beklenen=6 gercek=6
+PASS SPEC   test kimlikleri benzersiz | beklenen=True gercek=True
+PASS SPEC   tüm beklenenler referans çözümle uyuşuyor (uyuşmayan) | beklenen=0 gercek=0
+PASS SPEC   tüm etiketler kategori fonksiyonuyla uyuşuyor (uyuşmayan) | beklenen=0 gercek=0
+PASS SPEC   JSON testleri KANON §5.1 tablosuyla birebir | beklenen=True gercek=True
+PASS SPEC   sozlesme_karti madde sayısı | beklenen=6 gercek=6
+PASS SPEC   netlestirme.min_soru ≥ 4 | beklenen=True gercek=True
+PASS SPEC   hazır soru sayısı | beklenen=8 gercek=8
+PASS SPEC   edge_cases: her biri ≥1 geçerli teste bağlı (bağlanmayan) | beklenen=0 gercek=0
+PASS SPEC   ipucu_merdiveni anahtarları | beklenen=pusula,fener,taslak,ornek gercek=pusula,fener,taslak,ornek
+PASS SPEC   ipucu kademeleri boş değil | beklenen=True gercek=True
+PASS SPEC   savunma_sorulari ≥ 4 | beklenen=True gercek=True
+PASS SPEC   rubrik ağırlıkları 50+30+20 = 100 | beklenen=100 gercek=100
+PASS SPEC   rubrik eşiği KANON §9 (70) | beklenen=70 gercek=70
+PASS SPEC   odul.xp = 300 (KANON §3.3, T1 işletme açılışı) | beklenen=300 gercek=300
+PASS SPEC   her mutasyon ≥1 sabit testle yakalanıyor (yakalanmayan) | beklenen=0 gercek=0
+   bilgi: açık testlerle yakalanmayıp yalnızca gizli testle yakalanan mutasyon sayısı = 2/8
+   kategori → sabit vaka kimlikleri:
+      hemen-cikanlar   G1,G2
+      iki-saatten-az   A1,A2,G3,G4
+      iki-saat-civari  A3,A4,G5
+      iki-alti-arasi   G6
+      alti-saat-civari A5,G7,G8
+      gunluk-tarife    G9
+      bir-gun-civari   A6,G10,G11
+      gunu-asanlar     G12,G13,G14
+   kategori başına sabit vaka: hemen-cikanlar=2, iki-saatten-az=4, iki-saat-civari=3, iki-alti-arasi=1, alti-saat-civari=3, gunluk-tarife=1, bir-gun-civari=3, gunu-asanlar=3
+   2'den az sabit vakalı kategori (tohumlu T2/T3/T5 ile tamamlanır): [iki-alti-arasi,gunluk-tarife]
+PASS SPEC   10.000 oyuncuda her kategori (sabit+tohumlu) ≥ 2 vaka (eksik kalan oyuncu) | beklenen=0 gercek=0
+-- CHALLENGE SPEC doğrulama (otopark-L1.json, içerik CI kuralları): 22/22 geçti
+
+== HARNESS + MÜFETTİŞ — oyuncu çözümüne göre rapor (oyuncu=ayse_kod, gün=2026-11-02) ==
+   [referans çözüm] açık 6/6 · gizli 14/14 · tohumlu 6/6 → durum: AÇILIŞ (Savunma'ya geçer)
+   [M4 gün: ceil→'taban+1'] açık 6/6 · gizli 12/14 · tohumlu 6/6 → durum: DENEME (%50 gelir)
+      balon (girdi gizli): Bir müşteri: "24 saat civarı kalanlar için fazla ücret ödedim."
+      balon (girdi gizli): Bir müşteri: "24 saati aşanlar için fazla ücret ödedim."
+      sunucu günlüğü (istemciye gitmez): G11 gizli dakika=1440 beklenen=250 gercek=500
+      sunucu günlüğü (istemciye gitmez): G12 gizli dakika=2880 beklenen=500 gercek=750
+   [M1 '&lt;'→'&lt;=' 2 saat] açık 5/6 → Müfettiş'e gönderilemez (önce açık testler yeşil olmalı)
+      oyuncunun gördüğü: A3 dakika=120 beklenen=80 gercek=200
+   [E13 açık testleri ezberleme] açık 6/6 · gizli 1/14 · tohumlu 0/6 → durum: DENEME (%50 gelir)
+      balon (girdi gizli): Bir müşteri: "girip hemen çıkan müşteriler için ücret eksik hesaplanmış."
+      balon (girdi gizli): Bir müşteri: "2 saatten az kalanlar için ücret eksik hesaplanmış."
+      balon (girdi gizli): Bir müşteri: "2 saat civarı kalanlar için ücret eksik hesaplanmış."
+      balon (girdi gizli): Bir müşteri: "2–6 saat arası kalanlar için ücret eksik hesaplanmış."
+      balon (girdi gizli): Bir müşteri: "6 saat civarı kalanlar için ücret eksik hesaplanmış."
+      balon (girdi gizli): Bir müşteri: "6–24 saat arası kalanlar için ücret eksik hesaplanmış."
+      balon (girdi gizli): Bir müşteri: "24 saat civarı kalanlar için ücret eksik hesaplanmış."
+      balon (girdi gizli): Bir müşteri: "24 saati aşanlar için ücret eksik hesaplanmış."
+      sunucu günlüğü (istemciye gitmez): G2 gizli dakika=1 beklenen=100 gercek=0
+      sunucu günlüğü (istemciye gitmez): G3 gizli dakika=59 beklenen=100 gercek=0
+      sunucu günlüğü (istemciye gitmez): G4 gizli dakika=60 beklenen=100 gercek=0
+      sunucu günlüğü: (+16 kalan vaka daha)
+   [E1 saat: dakika/60 (taban)] açık 3/6 → Müfettiş'e gönderilemez (önce açık testler yeşil olmalı)
+      oyuncunun gördüğü: A1 dakika=30 beklenen=100 gercek=0
+      oyuncunun gördüğü: A2 dakika=61 beklenen=200 gercek=100
+      oyuncunun gördüğü: A4 dakika=121 beklenen=120 gercek=80
+   [M5 dilim yuvarlanmış saate göre] açık 5/6 → Müfettiş'e gönderilemez (önce açık testler yeşil olmalı)
+      oyuncunun gördüğü: A2 dakika=61 beklenen=200 gercek=80
+   [M2 '&lt;=' → '&lt;' 6 saat sınırı] açık 6/6 · gizli 13/14 · tohumlu 6/6 → durum: DENEME (%50 gelir)
+      balon (girdi gizli): Bir müşteri: "6 saat civarı kalanlar için fazla ücret ödedim."
+      sunucu günlüğü (istemciye gitmez): G8 gizli dakika=360 beklenen=240 gercek=250
+
+== OTOPARK L1 — mutasyon ve yaygın hata matrisi (kalan vaka kimlikleri) ==
+kod  | açıklama                       | açık kalan     | gizli kalan                                    | tohumlu yakalama | gelir etkisi   | şikâyet/gün | tahmin
+M1   | '&lt;'→'&lt;=' 2 saat sınırı         | A3             | -                                              | 0/10000          | +2.1 TL/gün    | 1.7%        | uyuştu
+M2   | '&lt;='→'&lt;' 6 saat sınırı         | -              | G8                                             | 0/10000          | +0.2 TL/gün    | 1.7%        | uyuştu
+M3   | '+59'→'+60' saat yuvarlama     | A3             | G4,G6,G8                                       | 5021/10000       | +8.0 TL/gün    | 12.5%       | uyuştu
+M4   | gün: ceil→'taban+1'            | -              | G11,G12                                        | 4979/10000       | +0.5 TL/gün    | 0.2%        | uyuştu
+M5   | dilim yuvarlanmış saate göre   | A2             | G5                                             | 5101/10000       | -321.3 TL/gün  | 95.2%       | uyuştu
+M6   | günlük sabit 250               | A6             | G12,G13,G14                                    | 10000/10000      | -60.0 TL/gün   | 21.5%       | uyuştu
+M7   | 2. dilimde dakika/60           | A4             | G7                                             | 10000/10000      | -164.5 TL/gün  | 99.4%       | uyuştu
+M8   | '&gt;120 &amp;&amp; &lt;360' iki sınır       | A3             | G8                                             | 0/10000          | +3.1 TL/gün    | 3.4%        | uyuştu
+E1   | saat: dakika/60 (taban)        | A1,A2,A4       | G2,G3,G5,G7                                    | 10000/10000      | -700.0 TL/gün  | 100.0%      | uyuştu
+E2   | Ceiling((double)(d/60))        | A1,A2,A4,A5,A6 | G2,G3,G5,G7,G9,G10,G13,G14                     | 10000/10000      | -1299.4 TL/gün | 100.0%      | (hesaplandı)
+E3   | Math.Round saat/gün            | A1,A2,A4,A5,A6 | G2,G9,G13,G14                                  | 9559/10000       | -559.9 TL/gün  | 99.9%       | (hesaplandı)
+E8   | gün: dakika/1440 (taban)       | A5,A6          | G9,G10,G13,G14                                 | 10000/10000      | -599.5 TL/gün  | 93.1%       | uyuştu
+E10  | en az 1 saat varsayımı         | -              | G1                                             | 0/10000          | 0.0 TL/gün     | 0.0%        | uyuştu
+E11  | else-if sırası bozuk           | A1,A2          | G2,G3,G4,G5                                    | 10000/10000      | -484.6 TL/gün  | 99.9%       | uyuştu
+E12  | '&amp;&amp;' yerine '||' yazıldı       | A1,A2,A5,A6    | G2,G3,G4,G5,G9,G10,G11,G12,G13,G14             | 10000/10000      | +545.0 TL/gün  | 100.0%      | (hesaplandı)
+E13  | açık testleri ezberleme        | -              | G2,G3,G4,G5,G6,G7,G8,G9,G10,G11,G12,G13,G14    | 10000/10000      | -2204.3 TL/gün | 100.0%      | uyuştu
+
+   yanlış sonuç veren girdiler (dakika 0–4400):
+   M1   n=1: 120
+   M2   n=1: 360
+   M3   n=6: 60, 120, 180, 240, 300, 360
+   M4   n=3: 1440, 2880, 4320
+   M5   n=59: 61–119
+   M6   n=2960: 1441–4400
+   M7   n=236: 121–179, 181–239, 241–299, 301–359
+   M8   n=2: 120, 360
+   E1   n=354: 1–59, 61–119, 121–179, 181–239, 241–299, 301–359
+   E2   n=4391: 1–59, 61–119, 121–179, 181–239, 241–299, 301–359, 361–1439, 1441–2879, 2881–4319, 4321–4400
+   E3   n=2056: 1–30, 61–89, 121–150, 181–209, 241–270, 301–329, 361–720, 1441–2159, 2881–3600, 4321–4400
+   E8   n=4037: 361–1439, 1441–2879, 2881–4319, 4321–4400
+   E10  n=1: 0
+   E11  n=119: 1–119
+   E12  n=4159: 1–119, 361–4400
+   E13  n=4394: 1–29, 31–60, 62–119, 122–360, 362–1440, 1442–4400
+
+EQ1  'dakika &lt;= 0' satırı silindi   açık kalan=- gizli kalan=- süpürme[0..300000] fark=0  → eşdeğer mutant, katalogdan elenir
+EQ2  'dakika &lt;= 360' → 'saat &lt;= 6'  açık kalan=- gizli kalan=- süpürme[0..300000] fark=0  → eşdeğer mutant, katalogdan elenir
+     (sözleşme dışı girdi: Esdeger(-200)=-200 TL, referans 0 TL — satır yalnızca negatif girdi içindir)
+     (taşma kontrolü: UcretHesapla(2147482208)=372827000 TL; UcretHesapla(2147482209)=-372827000 TL; UcretHesapla(int.MaxValue)=-372826750 TL → KANON v1'de üst sınır yok; Ek A önerisi 10.000.000)
+
+== HATA BİLDİRİMİ örneği — M4 (Müfettiş: 'Müşteri 1.440 dakika için 500 TL ödemiş.') ==
+PASS HB-1   hatalı kod, dakika=1440 | beklenen=500 gercek=500
+PASS HB-2   doğru kod, dakika=1440 | beklenen=250 gercek=250
+PASS HB-3   hatalı kod, dakika=1441 (hata görünmez) | beklenen=500 gercek=500
+PASS HB-4   hatalı kod, dakika=2880 | beklenen=750 gercek=750
+PASS HB-5   doğru kod, dakika=2880 | beklenen=500 gercek=500
+-- HATA BİLDİRİMİ örneği — M4 (Müfettiş: 'Müşteri 1.440 dakika için 500 TL ödemiş.'): 5/5 geçti
+
+== HATA BİLDİRİMİ — Müfettiş cümleleri (8 mutasyon: hatalı kodun verdiği ücret / doğru ücret) ==
+PASS HB-M1  tam 2 saat: hatalı kod → doğru ücret 80 | beklenen=200 gercek=200
+PASS HB-M2  tam 6 saat: hatalı kod → doğru ücret 240 | beklenen=250 gercek=250
+PASS HB-M3  tam 1 saat: hatalı kod → doğru ücret 100 | beklenen=200 gercek=200
+PASS HB-M4  1.440 dakika: hatalı kod → doğru ücret 250 | beklenen=500 gercek=500
+PASS HB-M5  61 dakika: hatalı kod → doğru ücret 200 | beklenen=80 gercek=80
+PASS HB-M6  2.880 dakika: hatalı kod → doğru ücret 500 | beklenen=250 gercek=250
+PASS HB-M7  121 dakika: hatalı kod → doğru ücret 120 | beklenen=80 gercek=80
+PASS HB-M8  tam 2 saat: hatalı kod → doğru ücret 80 | beklenen=250 gercek=250
+PASS HB-M8  tam 6 saat: hatalı kod → doğru ücret 240 | beklenen=250 gercek=250
+-- HATA BİLDİRİMİ — Müfettiş cümleleri (8 mutasyon: hatalı kodun verdiği ücret / doğru ücret): 9/9 geçti
+
+== HATA BİLDİRİMİ puanlama örnekleri (satır 30 + düzeltme 40 + neden 30; M4 = Orta, taban 60 B, XP 40) ==
+PASS HB-P   A: satır doğru, düzeltme tam, Kurul 90 | beklenen=97 tam 60 B 40 XP gercek=97 tam 60 B 40 XP
+PASS HB-P   B: satır doğru, düzeltme tam, Kurul 20 | beklenen=76 tam 60 B 40 XP gercek=76 tam 60 B 40 XP
+PASS HB-P   C: satır ±1, gizli kırmızı, Kurul 50 | beklenen=50 yarım 30 B 20 XP gercek=50 yarım 30 B 20 XP
+PASS HB-P   D: satır yanlış, derlenmedi, Kurul 35 | beklenen=11 yok 0 B 0 XP gercek=11 yok 0 B 0 XP
+-- HATA BİLDİRİMİ puanlama örnekleri (satır 30 + düzeltme 40 + neden 30; M4 = Orta, taban 60 B, XP 40): 4/4 geçti
+
+== OTOPARK L2 — açık testler ==
+PASS A1     dakika=   30 plaka=34ABC123  aboneler=[34ABC123] | beklenen=0 gercek=0
+PASS A2     dakika=   30 plaka=06XYZ789  aboneler=[34ABC123] | beklenen=100 gercek=100
+PASS A3     dakika=  121 plaka=34ABC123  aboneler=[06XYZ789,34ABC123] | beklenen=0 gercek=0
+PASS A4     dakika=  361 plaka=35DEF456  aboneler=[] | beklenen=250 gercek=250
+PASS A5     dakika=  120 plaka=06XYZ789  aboneler=[34ABC123,35DEF456] | beklenen=80 gercek=80
+-- OTOPARK L2 — açık testler: 5/5 geçti
+
+== OTOPARK L2 — gizli testler ==
+PASS G1     dakika= 1441 plaka=34ABC123  aboneler=[34ABC123] | beklenen=0 gercek=0
+PASS G2     dakika=  120 plaka=34ABC12   aboneler=[34ABC123] | beklenen=80 gercek=80
+PASS G3     dakika=    0 plaka=06XYZ789  aboneler=[06XYZ789] | beklenen=0 gercek=0
+PASS G4     dakika= 2881 plaka=34ABC1234 aboneler=[34ABC123] | beklenen=750 gercek=750
+   hata örneği: plaka.Contains(abone) → G4 sonucu 0 (beklenen 750), G2 sonucu 80 (beklenen 80)
+-- OTOPARK L2 — gizli testler: 4/4 geçti
+
+== OTOPARK L3 — açık testler ==
+PASS A1     dakika=  120 tur=Normal | beklenen=80 gercek=80
+PASS A2     dakika=  120 tur=Engelli | beklenen=40 gercek=40
+PASS A3     dakika=   61 tur=Elektrikli | beklenen=100 gercek=100
+PASS A4     dakika= 1441 tur=Engelli | beklenen=250 gercek=250
+PASS A5     dakika=   -1 tur=Normal | beklenen=ArgumentOutOfRangeException(dakika) gercek=ArgumentOutOfRangeException(dakika)
+-- OTOPARK L3 — açık testler: 5/5 geçti
+
+== OTOPARK L3 — gizli testler ==
+PASS G1     dakika=    0 tur=Engelli | beklenen=0 gercek=0
+PASS G2     dakika=   60 tur=7 | beklenen=ArgumentOutOfRangeException(tur) gercek=ArgumentOutOfRangeException(tur)
+PASS G3     dakika=   -5 tur=7 | beklenen=ArgumentOutOfRangeException(dakika) gercek=ArgumentOutOfRangeException(dakika)
+PASS G4     dakika=  360 tur=Elektrikli | beklenen=120 gercek=120
+PASS G5     dakika=   30 tur=Engelli | beklenen=50 gercek=50
+   L1 ücretlerinden tek sayı olan = 0 (0..300000) → %50 indirimde yuvarlama sorusu çıkmaz
+-- OTOPARK L3 — gizli testler: 5/5 geçti
+
+== OTOPARK L4 — açık testler ==
+PASS A1     giriş=2026-03-10 23:00 çıkış=2026-03-11 05:00 | beklenen=150 gercek=150
+PASS A2     giriş=2026-03-10 14:00 çıkış=2026-03-10 14:30 | beklenen=100 gercek=100
+PASS A3     giriş=2026-03-10 21:59 çıkış=2026-03-11 05:00 | beklenen=250 gercek=250
+PASS A4     giriş=2026-03-10 22:00 çıkış=2026-03-11 06:00 | beklenen=150 gercek=150
+PASS A5     giriş=2026-03-10 12:00 çıkış=2026-03-10 11:00 | beklenen=ArgumentOutOfRangeException(cikis) gercek=ArgumentOutOfRangeException(cikis)
+-- OTOPARK L4 — açık testler: 5/5 geçti
+
+== OTOPARK L4 — gizli testler ==
+PASS G1     giriş=2026-03-10 23:00 çıkış=2026-03-11 06:01 | beklenen=250 gercek=250
+PASS G2     giriş=2026-03-10 00:30 çıkış=2026-03-10 05:30 | beklenen=150 gercek=150
+PASS G3     giriş=2026-03-10 06:00 çıkış=2026-03-10 08:00 | beklenen=80 gercek=80
+PASS G4     giriş=2026-03-10 18:00 çıkış=2026-03-10 18:00 | beklenen=0 gercek=0
+PASS G5     giriş=2026-03-10 23:00 çıkış=2026-03-12 23:00 | beklenen=500 gercek=500
+PASS G6     giriş=2026-03-10 05:59 çıkış=2026-03-10 06:00 | beklenen=150 gercek=150
+   DateTime sürümü ile aritmetik sürüm (Profil.L4Ucret) karşılaştırması: 200 çift, fark=0
+-- OTOPARK L4 — gizli testler: 6/6 geçti
+
+== OTOPARK L4 — hatalı çözümler (hangi vakalar kalır) ==
+   referans çözüm                                       → kalan [-]
+   hata: Hour &gt;= 22 &amp;&amp; Hour &lt; 6 (boş pencere)             → kalan [A1,A4,G2,G6]
+   hata: 'cikis &lt; sabah' (06:00 çıkışı dışarıda)           → kalan [A4,G6]
+   hata: (cikis - giris).Minutes (bileşen, toplam değil)  → kalan [A1,A3,A4,G1,G2,G3,G5]
+   hata: yalnızca aynı takvim gününde gece sayılır         → kalan [A1,A4]
+
+== OTOPARK L5 — hatalı çözüm: çıkışta kuyruğun SON gelenini içeri almak ==
+   G1 senaryosu, LIFO sürüm: sonuclar=[Kabul,Kuyrukta,Kuyrukta,Kuyrukta,Cikti,KuyrukVazgecti] iceride=1 kuyruk=[C]
+   beklenen (FIFO)         : sonuclar=[Kabul,Kuyrukta,Kuyrukta,Kuyrukta,Cikti,Cikti] iceride=1 kuyruk=[D]
+
+== OTOPARK L5 — açık testler ==
+PASS A1     kap=2 kuyruk=1 [G:A G:B] | beklenen=sonuclar=[Kabul,Kabul] iceride=2 kuyruk=[] gercek=sonuclar=[Kabul,Kabul] iceride=2 kuyruk=[]
+PASS A2     kap=2 kuyruk=1 [G:A G:B G:C] | beklenen=sonuclar=[Kabul,Kabul,Kuyrukta] iceride=2 kuyruk=[C] gercek=sonuclar=[Kabul,Kabul,Kuyrukta] iceride=2 kuyruk=[C]
+PASS A3     kap=2 kuyruk=1 [G:A G:B G:C G:D] | beklenen=sonuclar=[Kabul,Kabul,Kuyrukta,Reddedildi] iceride=2 kuyruk=[C] gercek=sonuclar=[Kabul,Kabul,Kuyrukta,Reddedildi] iceride=2 kuyruk=[C]
+PASS A4     kap=2 kuyruk=2 [G:A G:B G:C G:D C:A] | beklenen=sonuclar=[Kabul,Kabul,Kuyrukta,Kuyrukta,Cikti] iceride=2 kuyruk=[D] gercek=sonuclar=[Kabul,Kabul,Kuyrukta,Kuyrukta,Cikti] iceride=2 kuyruk=[D]
+PASS A5     kap=1 kuyruk=1 [G:A G:A] | beklenen=sonuclar=[Kabul,Zaten] iceride=1 kuyruk=[] gercek=sonuclar=[Kabul,Zaten] iceride=1 kuyruk=[]
+-- OTOPARK L5 — açık testler: 5/5 geçti
+
+== OTOPARK L5 — gizli testler ==
+PASS G1     kap=1 kuyruk=3 [G:A G:B G:C G:D C:A C:B] | beklenen=sonuclar=[Kabul,Kuyrukta,Kuyrukta,Kuyrukta,Cikti,Cikti] iceride=1 kuyruk=[D] gercek=sonuclar=[Kabul,Kuyrukta,Kuyrukta,Kuyrukta,Cikti,Cikti] iceride=1 kuyruk=[D]
+PASS G2     kap=1 kuyruk=2 [G:A G:B G:C C:B C:A] | beklenen=sonuclar=[Kabul,Kuyrukta,Kuyrukta,KuyrukVazgecti,Cikti] iceride=1 kuyruk=[] gercek=sonuclar=[Kabul,Kuyrukta,Kuyrukta,KuyrukVazgecti,Cikti] iceride=1 kuyruk=[]
+PASS G3     kap=2 kuyruk=1 [C:X] | beklenen=sonuclar=[Bilinmiyor] iceride=0 kuyruk=[] gercek=sonuclar=[Bilinmiyor] iceride=0 kuyruk=[]
+PASS G5     kap=1 kuyruk=2 [G:A G:B G:B] | beklenen=sonuclar=[Kabul,Kuyrukta,Zaten] iceride=1 kuyruk=[B] gercek=sonuclar=[Kabul,Kuyrukta,Zaten] iceride=1 kuyruk=[B]
+PASS G4     varsayılan 50/10, 61 farklı plaka | beklenen=Kabul=50 Kuyrukta=10 Reddedildi=1 iceride=50 kuyruk=10 gercek=Kabul=50 Kuyrukta=10 Reddedildi=1 iceride=50 kuyruk=10
+-- OTOPARK L5 — gizli testler: 5/5 geçti
+
+== OTOPARK L5-b — Task'lı bekleme (async) ==
+PASS A1     kap=1: ilk giriş | beklenen=IsCompleted=True sonuc=Kabul gercek=IsCompleted=True sonuc=Kabul
+PASS A2     kap=1: ikinci giriş (dolu) | beklenen=IsCompleted=False gercek=IsCompleted=False
+PASS A3     Cikis() sonrası ikinci giriş | beklenen=IsCompleted=True sonuc=Kabul gercek=IsCompleted=True sonuc=Kabul
+PASS G1     FIFO: iki çıkış | beklenen=b=True c=False → b=True c=True gercek=b=True c=False → b=True c=True
+-- OTOPARK L5-b — Task'lı bekleme (async): 4/4 geçti
+
+== BÜFE L1 — açık testler ==
+PASS A1     fiyat= 12.35 verilen=  20 | beklenen="1x5 2x1 1x50kr 1x10kr 1x5kr" gercek="1x5 2x1 1x50kr 1x10kr 1x5kr"
+PASS A2     fiyat=    10 verilen=  10 | beklenen="" gercek=""
+PASS A3     fiyat=  3.50 verilen=   5 | beklenen="1x1 1x50kr" gercek="1x1 1x50kr"
+PASS A4     fiyat= 99.95 verilen= 100 | beklenen="1x5kr" gercek="1x5kr"
+PASS A5     fiyat=    45 verilen= 100 | beklenen="2x20 1x10 1x5" gercek="2x20 1x10 1x5"
+-- BÜFE L1 — açık testler: 5/5 geçti
+
+== BÜFE L1 — gizli testler ==
+PASS G1     fiyat=  4.90 verilen=   5 | beklenen="1x10kr" gercek="1x10kr"
+PASS G2     fiyat=  0.30 verilen=   1 | beklenen="1x50kr 2x10kr" gercek="1x50kr 2x10kr"
+PASS G3     fiyat=  0.05 verilen= 200 | beklenen="9x20 1x10 1x5 4x1 1x50kr 1x25kr 2x10kr" gercek="9x20 1x10 1x5 4x1 1x50kr 1x25kr 2x10kr"
+PASS G4     fiyat= 17.65 verilen=  20 | beklenen="2x1 1x25kr 1x10kr" gercek="2x1 1x25kr 1x10kr"
+PASS G5     fiyat=  6.40 verilen=  10 | beklenen="3x1 1x50kr 1x10kr" gercek="3x1 1x50kr 1x10kr"
+   hata örneği: 'double' ile yazılan sürümde kalan vakalar = [A4,G1,G2,G3,G5]
+   gelir bağdaştırıcısı: dizenin TL değeri (verilen − fiyat) ile uyuşmayan vaka = 0
+   açgözlü çözüm, 0,05 TL adımıyla 4000 para üstü tutarının tümünde en az parça sayısını veriyor mu? en iyi olmayan = 0
+-- BÜFE L1 — gizli testler: 5/5 geçti
+
+== MANAV L1 — açık testler ==
+PASS A1     kilo=  3 kiloFiyati= 40 | beklenen=120 gercek=120
+PASS A2     kilo=  5 kiloFiyati= 40 | beklenen=180 gercek=180
+PASS A3     kilo=  7 kiloFiyati= 35 | beklenen=220 gercek=220
+PASS A4     kilo= 12 kiloFiyati= 25 | beklenen=240 gercek=240
+PASS A5     kilo=  0 kiloFiyati= 40 | beklenen=0 gercek=0
+-- MANAV L1 — açık testler: 5/5 geçti
+
+== MANAV L1 — gizli testler ==
+PASS G1     kilo=  4 kiloFiyati= 40 | beklenen=160 gercek=160
+PASS G2     kilo= 10 kiloFiyati= 40 | beklenen=360 gercek=360
+PASS G3     kilo= 11 kiloFiyati= 40 | beklenen=352 gercek=352
+PASS G4     kilo=  9 kiloFiyati= 33 | beklenen=267 gercek=267
+   hata: önce /100 (kilo*fiyat/100*oran)     → kalan [A1,A3,G1,G3,G4]
+   hata: birim fiyat önce kırpılıyor          → kalan [A3,G4]
+   hata: 5 kg kademe dışında (kilo &lt;= 5)      → kalan [A2]
+   hata: artımlı (yalnızca fazlasına) indirim → kalan [A2,A3,A4,G2,G3,G4]
+   anomali: 10 kg = 360 TL, 11 kg = 352 TL (çok alan daha az öder)
+-- MANAV L1 — gizli testler: 4/4 geçti
+
+== KARGO DEPOSU L1 — açık testler ==
+PASS A1     raflar=[5,0,12] | beklenen=117 gercek=117
+PASS A2     raflar=[20] | beklenen=120 gercek=120
+PASS A3     raflar=[21] | beklenen=130 gercek=130
+PASS A4     raflar=[] | beklenen=0 gercek=0
+PASS A5     raflar=[0,0,0] | beklenen=45 gercek=45
+-- KARGO DEPOSU L1 — açık testler: 5/5 geçti
+
+== KARGO DEPOSU L1 — gizli testler ==
+PASS G1     raflar=[1] | beklenen=6 gercek=6
+PASS G2     raflar=[30,20,21,19,0] | beklenen=599 gercek=599
+PASS G3     raflar=[60] | beklenen=520 gercek=520
+PASS G4     raflar=[20,20,20,...] | beklenen=7200 gercek=7200
+   hata: taşkın için tüm koli 10 TL            → kalan [A3,G2,G3]
+   hata: boş raf kirası unutuldu               → kalan [A1,A5,G2]
+   eşdeğer: 'k &lt; 20' + taşkın dalı (20 → 120)  → kalan [-] (20 koli iki biçimde de 120 TL)
+-- KARGO DEPOSU L1 — gizli testler: 4/4 geçti
+
+== KALAN 16 İŞLETME (#5–#20) — L1 için 2+ örnek test (referans taslağıyla) ==
+PASS balik-hali-L1/1 "hamsi:2,levrek:1" | beklenen=410 gercek=410
+PASS balik-hali-L1/2 "palamut:3" | beklenen=360 gercek=360
+PASS balik-hali-L1/3 "" | beklenen=0 gercek=0
+PASS oto-yikama-L1/1 Standart + [Cila] | beklenen=370 gercek=370
+PASS oto-yikama-L1/2 Hızlı + [Cila,Koltuk] (2 adet: %10) | beklenen=420 gercek=420
+PASS oto-yikama-L1/3 Detay + 4 ek hizmet (%20) | beklenen=818 gercek=818
+PASS gumruk-L1/1 "34 ABC 123" | beklenen=true gercek=true
+PASS gumruk-L1/2 "34 ABQ 123" (Q yok) | beklenen=false gercek=false
+PASS gumruk-L1/3 "82 AB 123" (il kodu 82) | beklenen=false gercek=false
+PASS gumruk-L1/4 "+4 AB 123" | beklenen=false gercek=false
+PASS oto-tamirhane-L1/1 new Car().MaintenanceFee(15000) | beklenen=1250 gercek=1250
+PASS oto-tamirhane-L1/2 new Pickup().MaintenanceFee(20000) | beklenen=1800 gercek=1800
+PASS mobilya-atolyesi-L1/1 Sandalye 4×250 | beklenen=900 gercek=900
+PASS mobilya-atolyesi-L1/2 Masa 1×800 | beklenen=800 gercek=800
+PASS trafo-merkezi-L1/1 [1000 On, 500 Standby, 200 Off] | beklenen=1050 gercek=1050
+PASS trafo-merkezi-L1/2 [] | beklenen=0 gercek=0
+PASS kutuphane-L1/1 Ceza(01-01 → 01-20) | beklenen=16 gercek=16
+PASS kutuphane-L1/2 Ceza(01-01 → 01-15) son gün | beklenen=0 gercek=0
+PASS kutuphane-L1/3 Ceza(01-01 → 03-01) tavan | beklenen=120 gercek=120
+PASS kutuphane-L1/4 ToplamCeza([A 01-01→01-20, B 01-05→açık], bugün 01-25) | beklenen=37 gercek=37
+PASS sinema-L1/1 Reserve(A1, 20:00) | beklenen=true gercek=true
+PASS sinema-L1/2 Reserve(A1, 20:00) tekrar | beklenen=false gercek=false
+PASS sinema-L1/3 Reserve(A1, 22:00) başka seans | beklenen=true gercek=true
+PASS sinema-L1/4 Count(20:00) | beklenen=1 gercek=1
+PASS sinema-L1/5 ReservationBook&lt;(int,int)&gt; (genel tür) | beklenen=true gercek=true
+PASS haber-ajansi-L1/1 priority 2 → olay, priority 1 → olay yok | beklenen=["Köprü açıldı"] gercek=["Köprü açıldı"]
+PASS banka-L1/1 1000, [300,800,200], onay ≤500 | beklenen=500 gercek=500
+PASS banka-L1/2 onay hiç verilmez | beklenen=1000 gercek=1000
+PASS banka-L1/3 yetmeyen havale için onay servisi aranmaz (800 &gt; 700) | beklenen=500 çağrı=2 gercek=500 çağrı=2
+PASS sigorta-L1/1 (30, 0 hasar, dar kapsam) | beklenen=900 gercek=900
+PASS sigorta-L1/2 (22, 3 hasar, geniş kapsam) | beklenen=2500 gercek=2500
+PASS sigorta-L1/3 (40, 1 hasar, geniş kapsam) | beklenen=1400 gercek=1400
+PASS borsa-panosu-L1/1 500 sonra 200 {price:12.5} | beklenen=12.5 çağrı=2 gercek=12.5 çağrı=2
+PASS borsa-panosu-L1/2 hep 500 | beklenen=null çağrı=3 gercek=null çağrı=3
+PASS hastane-kayit-L1/1 iki hasta kaydı → kimlikler | beklenen=1,2 gercek=1,2
+PASS hastane-kayit-L1/2 ad boş | beklenen=ArgumentException(name) gercek=ArgumentException(name)
+PASS hastane-kayit-L1/3 Patients.Count() | beklenen=2 gercek=2
+PASS otel-L1/1 Book: iki kayıt da başarılı | beklenen=true dolu=1 misafir=1 gercek=true dolu=1 misafir=1
+PASS otel-L1/2 Book: 2. kayıt patlar → geri al | beklenen=false dolu=0 misafir=0 gercek=false dolu=0 misafir=0
+PASS yemek-siparis-platformu-L1/1 1 kalem, 2 adet × 50 | beklenen=201 100 gercek=201 100
+PASS yemek-siparis-platformu-L1/2 menüde olmayan ürün | beklenen=404 gercek=404
+PASS yemek-siparis-platformu-L1/3 boş sepet | beklenen=400 gercek=400
+PASS yemek-siparis-platformu-L1/4 adet 0 | beklenen=400 gercek=400
+PASS sehir-uygulamasi-L1/1 iki Get&lt;ReportService&gt;() aynı örnek mi | beklenen=true gercek=true
+PASS sehir-uygulamasi-L1/2 bağımlılık çözüldü mü (Clock.Now) | beklenen=2026-11-02T09:00:00 gercek=2026-11-02T09:00:00
+-- KALAN 16 İŞLETME (#5–#20) — L1 için 2+ örnek test (referans taslağıyla): 45/45 geçti
+
+== İPUCU MERDİVENİ 'Örnek' kademesi kodları (oyuncuya gösterilen kod doğru mu?) ==
+PASS ORN-OP BisikletUcreti(20) | beklenen=20 gercek=20
+PASS ORN-OP BisikletUcreti(44) | beklenen=30 gercek=30
+PASS ORN-OP BisikletUcreti(45) | beklenen=30 gercek=30
+PASS ORN-OP BisikletUcreti(180) | beklenen=90 gercek=90
+PASS ORN-OP BisikletUcreti(181) | beklenen=120 gercek=120
+PASS ORN-OP BisikletUcreti(1441) | beklenen=240 gercek=240
+PASS ORN-MN Koli(4) kademe örneği | beklenen=30 gercek=30
+PASS ORN-MN Koli(5) kademe örneği | beklenen=50 gercek=50
+PASS ORN-MN Koli(10) kademe örneği | beklenen=50 gercek=50
+PASS ORN-MN Koli(11) kademe örneği | beklenen=80 gercek=80
+PASS ORN-BF 87 puan → 25'lik rozet sayısı, kalan | beklenen=3 12 gercek=3 12
+PASS ORN-KG not listesi toplamı (foreach) | beklenen=195 gercek=195
+PASS ORN-1.2 (dakika + 59) / 60 kalıbı: 60, 61, 119, 120, 121 | beklenen=1,2,2,2,3 gercek=1,2,2,2,3
+PASS ORN-L2 Yasakli(kedi / kuş / kediler) | beklenen=True,False,False gercek=True,False,False
+PASS ORN-L3 YasKontrol(-1) / YasKontrol(0) | beklenen=ArgumentOutOfRangeException(yas) "ok" gercek=ArgumentOutOfRangeException(yas) "ok"
+PASS ORN-L4 Mesai 08:59 / 09:00 / 17:59 / 18:00 | beklenen=False,True,True,False gercek=False,True,True,False
+PASS ORN-L5 Queue: Enqueue(a), Enqueue(b), Dequeue(), Count | beklenen=a 1 gercek=a 1
+-- İPUCU MERDİVENİ 'Örnek' kademesi kodları (oyuncuya gösterilen kod doğru mu?): 17/17 geçti
+
+== MÜFETTİŞ ŞİKÂYET KATEGORİLERİ (otopark-L1): aralık | sabit vaka | balon metinleri ==
+hemen-cikanlar   | 0–5       | G1,G2       | fazla: Bir müşteri: "girip hemen çıkan müşteriler için fazla ücret ödedim."
+                 |           |             | eksik: Bir müşteri: "girip hemen çıkan müşteriler için ücret eksik hesaplanmış."
+iki-saatten-az   | 6–99      | A1,A2,G3,G4 | fazla: Bir müşteri: "2 saatten az kalanlar için fazla ücret ödedim."
+                 |           |             | eksik: Bir müşteri: "2 saatten az kalanlar için ücret eksik hesaplanmış."
+iki-saat-civari  | 100–140   | A3,A4,G5    | fazla: Bir müşteri: "2 saat civarı kalanlar için fazla ücret ödedim."
+                 |           |             | eksik: Bir müşteri: "2 saat civarı kalanlar için ücret eksik hesaplanmış."
+iki-alti-arasi   | 141–340   | G6          | fazla: Bir müşteri: "2–6 saat arası kalanlar için fazla ücret ödedim."
+                 |           |             | eksik: Bir müşteri: "2–6 saat arası kalanlar için ücret eksik hesaplanmış."
+alti-saat-civari | 341–380   | A5,G7,G8    | fazla: Bir müşteri: "6 saat civarı kalanlar için fazla ücret ödedim."
+                 |           |             | eksik: Bir müşteri: "6 saat civarı kalanlar için ücret eksik hesaplanmış."
+gunluk-tarife    | 381–1399  | G9          | fazla: Bir müşteri: "6–24 saat arası kalanlar için fazla ücret ödedim."
+                 |           |             | eksik: Bir müşteri: "6–24 saat arası kalanlar için ücret eksik hesaplanmış."
+bir-gun-civari   | 1400–1480 | A6,G10,G11  | fazla: Bir müşteri: "24 saat civarı kalanlar için fazla ücret ödedim."
+                 |           |             | eksik: Bir müşteri: "24 saat civarı kalanlar için ücret eksik hesaplanmış."
+gunu-asanlar     | 1481+     | G12,G13,G14 | fazla: Bir müşteri: "24 saati aşanlar için fazla ücret ödedim."
+                 |           |             | eksik: Bir müşteri: "24 saati aşanlar için ücret eksik hesaplanmış."
+hata    : Bariyer ekranı: "2 saat civarı kalanlar için sistem hata verdi."
+zaman   : Bariyer ekranı: "2 saat civarı kalanlar için cevap gelmedi."
+
+== AYNI ŞEMA, DÖRT YÜZEY — sınır üçlüleri (Otopark → Manav → Oto Yıkama → Kütüphane) ==
+PASS OTOPARK UcretHesapla(119) | beklenen=200 gercek=200
+PASS OTOPARK UcretHesapla(120) | beklenen=80 gercek=80
+PASS OTOPARK UcretHesapla(121) | beklenen=120 gercek=120
+PASS MANAV  Tutar(4, 40) | beklenen=160 gercek=160
+PASS MANAV  Tutar(5, 40) | beklenen=180 gercek=180
+PASS MANAV  Tutar(6, 40) | beklenen=216 gercek=216
+PASS MANAV  Tutar(10, 40) | beklenen=360 gercek=360
+PASS MANAV  Tutar(11, 40) | beklenen=352 gercek=352
+PASS OTOYIKAMA Standart + [Cila] | beklenen=370 gercek=370
+PASS OTOYIKAMA Standart + [Cila,Koltuk] | beklenen=520 gercek=520
+PASS OTOYIKAMA Standart + [Cila,Koltuk,Motor] | beklenen=610 gercek=610
+PASS OTOYIKAMA Standart + [Cila,Koltuk,Motor,Koku] | beklenen=602 gercek=602
+PASS OTOYIKAMA Standart + [Cila,Koltuk,Motor,Lastik] | beklenen=618 gercek=618
+PASS KUTUPHANE gecikme=0 gün | beklenen=0 gercek=0
+PASS KUTUPHANE gecikme=1 gün | beklenen=2 gercek=2
+PASS KUTUPHANE gecikme=3 gün | beklenen=6 gercek=6
+PASS KUTUPHANE gecikme=4 gün | beklenen=11 gercek=11
+PASS KUTUPHANE gecikme=10 gün | beklenen=41 gercek=41
+PASS KUTUPHANE gecikme=11 gün | beklenen=51 gercek=51
+PASS KUTUPHANE gecikme=17 gün | beklenen=111 gercek=111
+PASS KUTUPHANE gecikme=18 gün | beklenen=120 gercek=120
+PASS KUTUPHANE-HATA tüm gecikmeye tek oran (5 gün: 5 × 5); doğru artımlı değer 16 | beklenen=25 16 gercek=25 16
+PASS KUTUPHANE-HATA tüm gecikmeye tek oran (11 gün: 10 × 11 = 110); doğru artımlı değer 51 | beklenen=110 51 gercek=110 51
+PASS KUTUPHANE saat önemsiz: iade 23:59 / 00:01 aynı gün | beklenen=2 2 gercek=2 2
+-- AYNI ŞEMA, DÖRT YÜZEY — sınır üçlüleri (Otopark → Manav → Oto Yıkama → Kütüphane): 24/24 geçti
+
+== SENTETİK TRAFİK PROFİLLERİ — beklenen günlük gelir (tam sayım) vs B2 §7.1 ==
+L1 dilim ortalamaları (TL/araç): 149.58 | 179.59 | 250.00 | 500.00
+L1  araç=12  ağırlık=45/35/18/2             E[TL/araç]= 185.17 çarpan=1.000 → beklenen TL/gün=    2222  B/gün=  222.2  hedef=  220 sapma=   1.0%
+L2  araç=20  ağırlık=45/35/18/2             E[TL/araç]= 185.17 çarpan=0.950 → beklenen TL/gün=    3518  B/gün=  351.8  hedef=  350 sapma=   0.5%
+L3  araç=30  ağırlık=40/33/22/5             E[TL/araç]= 199.10 çarpan=0.925 → beklenen TL/gün=    5525  B/gün=  552.5  hedef=  560 sapma=  -1.3%
+L4  araç=40  ağırlık=27/30/31/12            E[TL/araç]= 231.08 çarpan=1.000 → beklenen TL/gün=    9243  B/gün=  924.3  hedef=  900 sapma=   2.7%
+L5  araç=50  ağırlık=15/25/40/20            E[TL/araç]= 292.33 çarpan=1.000 → beklenen TL/gün=   14617  B/gün= 1461.7  hedef= 1440 sapma=   1.5%
+L1 araç başına σ=71.8 TL; 12 araçlık günün σ=249 TL (±%11.2); 7 günlük ortalamanın σ=±%4.2
+Büfe L1  : 100 satış/gün, menü ağırlık toplamı=1.00, ortalama sepet=30.42 TL → beklenen TL/gün=3042  B/gün=304.2  hedef=300 sapma=+1.4%
+Manav L1 : 28 müşteri/gün, kilo ağırlık toplamı=1.00, ortalama sepet=136.72 TL → beklenen TL/gün=3828  B/gün=382.8  hedef=380 sapma=+0.7%
+Kargo L1 : 60 raf/gün (0 koli %8, 1–20 %72, 21–30 %20), ortalama raf=81.56 TL → beklenen TL/gün=4894  B/gün=489.4  hedef=500 sapma=-2.1%
+Gece batch simülasyonu (5000 gün × 12 araç, tohum=işletme+gün): referans ort. = 2220 TL/gün (σ = 248 TL), 222.0 B/gün
+Dengeleyici hatalı çözüm (61–119 dk eksik, 361–1440 dk fazla): ham toplam ort. = 2224 TL/gün
+   B2 §8.2 toplam tavanı  min(Σoyuncu, Σreferans)  → gelir ort. = 2124 TL/gün (95.7% referansın)
+   araç başına tavan       Σ min(oyuncu_i, ref_i)    → gelir ort. = 1956 TL/gün (88.1% referansın)
+
+== ÖZET ==
+OK     6/6   OTOPARK L1 — 6 açık test (referans çözüm)
+OK    14/14  OTOPARK L1 — 14 gizli test (referans çözüm)
+OK     6/6   OTOPARK L1 — 6 tohumlu test (oyuncu=ayse_kod, gün=2026-11-02, tohum=0x9D8D74B21D8FC748)
+OK     5/5   OTOPARK L1 — alternatif doğru çözümler (20 sabit + 6 tohumlu = 26 vaka her biri)
+OK    22/22  CHALLENGE SPEC doğrulama (otopark-L1.json, içerik CI kuralları)
+OK     5/5   HATA BİLDİRİMİ örneği — M4 (Müfettiş: 'Müşteri 1.440 dakika için 500 TL ödemiş.')
+OK     9/9   HATA BİLDİRİMİ — Müfettiş cümleleri (8 mutasyon: hatalı kodun verdiği ücret / doğru ücret)
+OK     4/4   HATA BİLDİRİMİ puanlama örnekleri (satır 30 + düzeltme 40 + neden 30; M4 = Orta, taban 60 B, XP 40)
+OK     5/5   OTOPARK L2 — açık testler
+OK     4/4   OTOPARK L2 — gizli testler
+OK     5/5   OTOPARK L3 — açık testler
+OK     5/5   OTOPARK L3 — gizli testler
+OK     5/5   OTOPARK L4 — açık testler
+OK     6/6   OTOPARK L4 — gizli testler
+OK     5/5   OTOPARK L5 — açık testler
+OK     5/5   OTOPARK L5 — gizli testler
+OK     4/4   OTOPARK L5-b — Task'lı bekleme (async)
+OK     5/5   BÜFE L1 — açık testler
+OK     5/5   BÜFE L1 — gizli testler
+OK     5/5   MANAV L1 — açık testler
+OK     4/4   MANAV L1 — gizli testler
+OK     5/5   KARGO DEPOSU L1 — açık testler
+OK     4/4   KARGO DEPOSU L1 — gizli testler
+OK    45/45  KALAN 16 İŞLETME (#5–#20) — L1 için 2+ örnek test (referans taslağıyla)
+OK    17/17  İPUCU MERDİVENİ 'Örnek' kademesi kodları (oyuncuya gösterilen kod doğru mu?)
+OK    24/24  AYNI ŞEMA, DÖRT YÜZEY — sınır üçlüleri (Otopark → Manav → Oto Yıkama → Kütüphane)
+TOPLAM: 229 vaka çalıştırıldı, 229 geçti, 0 kaldı.</pre>
+</section>

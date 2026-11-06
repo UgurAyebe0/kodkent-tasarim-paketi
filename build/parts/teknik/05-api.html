@@ -1,0 +1,442 @@
+<!-- build_page.py ile üretildi -->
+<section id="api">
+<h2>API</h2>
+<p>REST arayüzü <code>/v1</code> altında sürümlenir. Sözleşme kuralları ve hız sınırı politikaları (B7 §5.1), hata biçimi (§5.2) ve uç nokta kataloğu (§5.3) açıktır; kritik 20 uç noktanın istek ve yanıt örnekleri (§5.4) kapalı başlıklardadır.</p>
+
+<h3 id="b7-5-1-sozlesme-kurallari">5.1 Sözleşme kuralları</h3>
+<p><strong>Taban ve adlandırma (talimat §3).</strong> Taban yol <code>/v1</code>; kaynak adları İngilizce çoğul, <code>kebab-case</code> (<code>/v1/lessons/{lessonId}</code>, <code>/v1/grading/submissions</code>, <code>/v1/businesses/{businessId}/runs</code>); kimlik doğrulama <code>Authorization: Bearer &lt;JWT&gt;</code>; gerçek zamanlı hub'lar <code>/hubs/world</code> ve <code>/hubs/chat</code> (§6). Alt kaynak yalnızca sahiplik açıksa iç içe yazılır (<code>/businesses/{id}/runs</code>); aksi hâlde düz kaynak ve filtre kullanılır. Eylemler fiil değil <em>olay kaynağı</em> olarak modellenir: "kasa topla" bir <code>POST …/vault/collections</code> kaydı oluşturur, "tapu al" <code>POST /businesses</code> ile bir işletme oluşturur. Bu, idempotency ve denetim için doğal bir kayıt satırı bırakır.</p><p><strong>Alan adları.</strong> JSON alanları <code>camelCase</code>'tir. İki istisna vardır ve bilerek korunur: Kurul kartı (B3) ve Challenge Spec (B5) kendi sahiplerinin alan adlarıyla (<code>puan</code>, <code>olcutler</code>, <code>geri_bildirim</code>, <code>public_tests</code>, <code>musteri_istegi</code> …) aynen taşınır; B7 bunları yeniden adlandırmaz. Zaman damgaları ISO 8601 UTC (<code>2026-11-02T21:14:03Z</code>); iş günü tarihleri <code>YYYY-MM-DD</code> (TR iş günü); para tamsayıdır (<code>bayt</code>, <code>cip</code>, <code>tl</code>); kimlikler UUIDv7 ya da içerik slug'ıdır.</p><p><strong>Başlıklar.</strong> İstemci her istekte <code>X-Client-Version: web/1.4.2</code> gönderir; sunucu <code>X-Request-Id</code> üretir/yansıtır ve W3C <code>traceparent</code>'ı sürdürür. <code>Idempotency-Key</code>, <code>If-Match</code> (iyimser eşzamanlılık) ve <code>Accept-Language: tr</code> desteklenir. Yanıtlarda <code>Cache-Control</code> açıkça yazılır: oyuncuya özel yanıtlar <code>private, no-store</code>, katalog ve içerik yanıtları <code>public, max-age</code> + <code>ETag</code>.</p><p><strong>Sürümleme.</strong> Ana sürüm yoldadır. <em>Eklemeli</em> değişiklik (yeni alan, yeni uç nokta, yeni enum değeri) sürümü değiştirmez; istemciler bilinmeyen alanı ve bilinmeyen enum değerini yok sayar (B8 sözleşmesi). <em>Kırıcı</em> değişiklik <code>/v2</code> olarak paralel yayınlanır ve en az 8 hafta (PWA'nın eski sürümlerinin ömrü) birlikte yaşar; eski uç nokta <code>Deprecation</code> ve <code>Sunset</code> başlıklarıyla işaretlenir. Asgari istemci sürümü altındakiler <code>426 Upgrade Required</code> (<code>CLIENT_OUTDATED</code>) alır; istemci service worker'ı güncelleyip sayfayı yeniler. OpenAPI 3.1 dosyası <code>GET /v1/openapi.json</code>'dan yayınlanır; B8'in TypeScript tipleri buradan üretilir; sözleşme testleri (Schemathesis) CI'da koşar.</p><p><strong>Idempotency-Key kuralı.</strong> Durum değiştiren ve <em>para, XP, envanter ya da kuyruk işi</em> üreten her <code>POST</code> için <code>Idempotency-Key</code> zorunludur (UUID/ULID, 16–64 karakter); eksikse <code>400 IDEMPOTENCY_KEY_REQUIRED</code>. Davranış:</p><ol><li>Anahtar <code>(oyuncu, anahtar)</code> çifti olarak <code>platform.idempotency_keys</code>'e <code>in_progress</code> yazılır (<code>ON CONFLICT DO NOTHING</code>); istek gövdesinin SHA-256'sı saklanır.</li><li>Aynı anahtar, aynı gövde, işlem sürerken gelirse <code>409 IDEMPOTENCY_IN_PROGRESS</code> + <code>Retry-After: 1</code>.</li><li>Aynı anahtar, aynı gövde, işlem bittiyse <strong>aynı yanıt</strong> (durum kodu ve gövde) tekrarlanır; başlık <code>Idempotent-Replayed: true</code>.</li><li>Aynı anahtar, farklı gövde → <code>422 IDEMPOTENCY_KEY_REUSE</code>.</li><li>Kayıt 24 saat tutulur. İstemci anahtarı <em>niyet</em> başına bir kez üretir (düğmeye basma), yeniden denemede <strong>aynısını</strong> gönderir.</li><li>İkinci savunma hattı defterdedir: doğal anahtar (<code>qr:{oyuncu}:{görev}</code>, <code>deed:{oyuncu}:{tür}</code>, <code>vault:{işletme}:{toplama kimliği}</code>) <code>ledger_transactions.idempotency_key</code> benzersizliğiyle aynı ödülün iki kez yazılmasını imkânsız kılar (§9.5).</li></ol><p><strong>Sayfalama.</strong> Yalnızca <em>imleç</em> (cursor) tabanlıdır, <code>OFFSET</code> yoktur: <code>?limit=1..100</code> (varsayılan 20) ve <code>?cursor=&lt;opak&gt;</code>; yanıt <code>{ "items": [...], "nextCursor": "…" | null }</code>. Sıralama kararlıdır (<code>created_at DESC, id DESC</code>); imleç son satırın sıralama anahtarını base64url ile taşır. Liderlik ve lig panoları sayfalanmaz: <code>top</code> (ilk N) ve <code>around=me</code> (çevremdeki 7 satır) sunar.</p><p><strong>Yetki modeli.</strong> Roller: <code>oyuncu</code>, <code>veli</code> (SMS belirteciyle, oturumsuz), <code>moderator</code>, <code>icerik</code>, <code>yonetici</code>, <code>servis</code> (iç iş hesapları), <code>webhook</code> (imza doğrulamalı dış kaynak). Rol dışında <em>niteleyiciler</em> JWT talebinden okunur: <code>age_band</code> (<code>15-17</code>, <code>18+</code>; v1'de <code>13-15</code>, <code>16-17</code>, bkz. §11.5), <code>par</code> (<code>none|pending|granted</code>). Her <code>{id}</code> içeren uç nokta <strong>nesne düzeyinde yetki</strong> denetler (BOLA): kaynağın sahibi/izinli olup olmadığı komut işleyicisinde kontrol edilir, "ID'yi bilmek erişim hakkı değildir".</p><p><strong>Hız sınırı.</strong> Üç katman: (1) <em>kenar</em> (Cloudflare): IP başına 600 istek/dk ve ASN anomali kuralları; Türkiye mobil operatörleri CGNAT kullandığından IP sınırları cömert, <strong>kimlik sınırları</strong> sıkıdır; (2) <em>API</em> içinde Redis üzerinde Lua ile atomik jeton kovası (kimlik/IP/uç nokta sınıfı); (3) <em>iş kuralı</em> sınırları (kota, günlük tavan) veri düzeyinde. Aşımda <code>429</code> + <code>Retry-After</code> + <code>RateLimit-Limit/Remaining/Reset</code> başlıkları.</p><div class="tablewrap"><table><thead><tr><th>Politika</th><th>Anahtar</th><th>Limit</th><th>Uygulandığı uç noktalar</th></tr></thead><tbody><tr><td class="nw"><code>RL-OTP-SEND</code></td><td>telefon özeti</td><td>5 gönderim/saat <strong>(B7 önerisi)</strong>; iki gönderim arası ≥ 60 sn (KANON §6)</td><td>OTP iste</td></tr><tr><td class="nw"><code>RL-OTP-SEND-IP</code></td><td>IP + cihaz</td><td>30/saat/IP; 10/gün/cihaz; Turnstile eşiği (§11.3)</td><td>OTP iste</td></tr><tr><td class="nw"><code>RL-OTP-VERIFY</code></td><td>telefon özeti</td><td>5 yanlış deneme/saat (KANON §6); kod başına 3</td><td>OTP doğrula</td></tr><tr><td class="nw"><code>RL-AUTH</code></td><td class="nw">IP</td><td class="nw">60/dk</td><td>kayıt, yenileme, veli kararı</td></tr><tr><td class="nw"><code>RL-PUBLIC</code></td><td class="nw">IP</td><td class="nw">120/dk</td><td>herkese açık GET (katalog, aydınlatma, sağlık)</td></tr><tr><td class="nw"><code>RL-READ</code></td><td class="nw">oyuncu</td><td>120/dk, patlama 40</td><td class="nw">GET'ler</td></tr><tr><td class="nw"><code>RL-WRITE</code></td><td class="nw">oyuncu</td><td class="nw">60/dk</td><td>genel POST/PUT/PATCH/DELETE</td></tr><tr><td class="nw"><code>RL-GRADE</code></td><td class="nw">oyuncu</td><td>10/dk; günlük 30 AI etkileşimi kotası (KANON §9) kuyruk-erteleme olarak, 429 değil</td><td class="nw"><code>grading/*</code></td></tr><tr><td class="nw"><code>RL-RUN</code></td><td>oyuncu + IP</td><td>oyuncu 10/dk (patlama 5), 300/gün; IP 120/dk</td><td><code>challenges/*/submissions</code>, Savunma</td></tr><tr><td class="nw"><code>RL-MONEY</code></td><td class="nw">oyuncu</td><td class="nw">20/dk</td><td>satın al, kasa topla, yükselt, takma ad değiştir</td></tr><tr><td class="nw"><code>RL-SOCIAL</code></td><td class="nw">oyuncu</td><td class="nw">30/dk</td><td>arkadaş isteği, davet, engelle</td></tr><tr><td class="nw"><code>RL-REPORT</code></td><td class="nw">oyuncu</td><td class="nw">20/gün</td><td>sohbet şikâyeti</td></tr><tr><td class="nw"><code>RL-ADMIN</code></td><td class="nw">yönetici</td><td class="nw">300/dk</td><td class="nw"><code>admin/*</code></td></tr><tr><td class="nw"><code>RL-WEBHOOK</code></td><td>kaynak IP izin listesi + HMAC</td><td class="nw">600/dk</td><td>PSP/SMS bildirimleri</td></tr></tbody></table></div>
+<h3 id="b7-5-2-hata-formati-rfc-9457-ve-hata-kodlari">5.2 Hata formatı (RFC 9457) ve hata kodları</h3>
+<p>Tüm hatalar <code>application/problem+json</code> döner. RFC 9457 alanları (<code>type</code>, <code>title</code>, <code>status</code>, <code>detail</code>, <code>instance</code>) Türkçe, oyuncuya gösterilebilir metinle doldurulur; makine tarafı uzantılarla taşınır: <code>code</code> (kararlı, <code>SCREAMING_SNAKE</code>), <code>traceId</code>, <code>errors[]</code> (doğrulama: <code>{pointer, detail}</code>), <code>retryAfterSec</code>, <code>requires{}</code> (ön koşul: seviye, ders, Ruhsat, bakiye). <code>type</code> URI'si <code>https://api.kodkent.com/problems/&lt;slug&gt;</code> biçimindedir ve bir açıklama sayfasına çözülür. İç hata ayrıntısı (yığın, SQL) yanıta <strong>asla</strong> girmez; yalnızca <code>traceId</code> bulunur.</p><pre class="code" data-lang="json"><code>{
+  "type": "https://api.kodkent.com/problems/insufficient-funds",
+  "title": "Bakiye yetersiz",
+  "status": 402,
+  "detail": "Tapu için 300 B gerekiyor, cüzdanında 240 B var.",
+  "instance": "/v1/businesses",
+  "code": "INSUFFICIENT_FUNDS",
+  "requires": { "currency": "BAYT", "required": 300, "available": 240 },
+  "traceId":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+}</code></pre><div class="tablewrap"><table><thead><tr><th><code>code</code></th><th class="num">HTTP</th><th>Ne zaman</th><th>Oyuncu metni (özet)</th></tr></thead><tbody><tr><td><code>VALIDATION_FAILED</code></td><td class="num nw">422</td><td>Şema/aralık ihlali (<code>errors[]</code> dolu)</td><td>"Şu alanı düzelt: …"</td></tr><tr><td><code>UNAUTHENTICATED</code> / <code>TOKEN_EXPIRED</code></td><td class="num nw">401</td><td>Belirteç yok/süresi dolmuş</td><td>"Oturum süresi doldu." (istemci sessizce yeniler)</td></tr><tr><td class="nw"><code>FORBIDDEN</code></td><td class="num nw">403</td><td>Rol/nesne yetkisi yok</td><td>"Buna iznin yok."</td></tr><tr><td><code>GUARDIAN_REQUIRED</code></td><td class="num nw">403</td><td>Veli onayı gerektiren özellik (serbest sohbet, Çip satın alma)</td><td>"Bu özellik için veli onayı bekleniyor."</td></tr><tr><td class="nw"><code>AGE_TOO_LOW</code></td><td class="num nw">403</td><td>15 yaş altı</td><td>"KodKent 13 yaş ve üzeri içindir."</td></tr><tr><td><code>DISTRICT_LOCKED</code></td><td class="num nw">403</td><td>Kilitli semtte kilitli eylem</td><td>"Liman: Çarşı Sınavı'ndan sonra açılıyor."</td></tr><tr><td><code>LESSON_GATE</code> / <code>LICENCE_MISSING</code> / <code>LEVEL_TOO_LOW</code></td><td class="num nw">403</td><td>Ders Mührü, Ruhsat, seviye ön koşulu</td><td><code>requires{}</code> ile neyin eksik olduğu</td></tr><tr><td class="nw"><code>NOT_FOUND</code></td><td class="num nw">404</td><td>Kaynak yok <strong>ya da</strong> görmeye yetkisiz (varlık sızdırılmaz)</td><td class="nw">"Bulunamadı."</td></tr><tr><td><code>IDEMPOTENCY_IN_PROGRESS</code> / <code>IDEMPOTENCY_KEY_REUSE</code> / <code>IDEMPOTENCY_KEY_REQUIRED</code></td><td class="num">409 / 422 / 400</td><td class="nw">§5.1</td><td class="nw">—</td></tr><tr><td><code>VERSION_CONFLICT</code></td><td class="num nw">412</td><td><code>If-Match</code> uyuşmadı (oda yerleşimi vb.)</td><td>"Başka yerde değişmiş; yenile."</td></tr><tr><td><code>INSUFFICIENT_FUNDS</code></td><td class="num nw">402</td><td>Bakiye yetersiz</td><td>"N B gerekiyor."</td></tr><tr><td class="nw"><code>SLOT_LIMIT</code></td><td class="num nw">409</td><td><code>1 + ⌊seviye/6⌋</code> işletme sınırı</td><td>"Sev. 6'da 2. işletmeni açabilirsin."</td></tr><tr><td><code>ALREADY_OWNED</code> / <code>PRICE_CHANGED</code></td><td class="num nw">409</td><td>Envanter/fiyat çakışması</td><td>"Bu eşyaya zaten sahipsin."</td></tr><tr><td><code>ATTEMPTS_EXHAUSTED</code> / <code>APPEAL_ALREADY_FILED</code></td><td class="num nw">409</td><td>Soru başına 2 deneme / 1 itiraz</td><td>"Bu soru için haklarını kullandın."</td></tr><tr><td class="nw"><code>VAULT_EMPTY</code></td><td class="num nw">409</td><td>Kasada toplanacak tam Bayt yok</td><td>"Kasada henüz tam bir Bayt birikmedi."</td></tr><tr><td><code>SCENE_FULL</code> / <code>SCENE_LOCKED</code></td><td class="num nw">409</td><td>Oda/işletme içi kapasite dolu; Savunma ya da Semt Sınavı sırasında sahne değiştirme</td><td>"Dolu — 20/20. Sahibine Alkış bırakabilirsin."</td></tr><tr><td><code>REAUTH_REQUIRED</code></td><td class="num nw">401</td><td>Silme, telefon değiştirme, veri indirme için OTP ile yeniden doğrulama</td><td>"Telefonuna gelen kodu gir."</td></tr><tr><td><code>CLARIFICATION_REQUIRED</code></td><td class="num nw">409</td><td>İş Emri için &lt; 4 netleştirme sorusu</td><td>"Önce müşteriye en az 4 soru sor."</td></tr><tr><td><code>OTP_INVALID</code> / <code>OTP_EXPIRED</code> / <code>OTP_LOCKED</code> / <code>OTP_RESEND_TOO_SOON</code></td><td class="num">422 / 410 / 423 / 429</td><td class="nw">§11.1</td><td>Kalan hak ve süre</td></tr><tr><td class="nw"><code>RATE_LIMITED</code></td><td class="num nw">429</td><td>§5.1 politikaları</td><td>"Biraz yavaşla; N sn sonra tekrar dene."</td></tr><tr><td><code>CLIENT_OUTDATED</code></td><td class="num nw">426</td><td>Asgari istemci sürümü altı</td><td>"Uygulamayı yenile."</td></tr><tr><td class="nw"><code>SANDBOX_BUSY</code></td><td class="num nw">503</td><td>Kod kuyruğu eşik üstü (kabul edilmez)</td><td>"Atölye şu an yoğun; birkaç sn sonra dene." (nadir; normalde kuyruğa alınır)</td></tr><tr><td class="nw"><code>MAINTENANCE</code></td><td class="num nw">503</td><td>Planlı bakım</td><td>"Kısa bir bakım var."</td></tr><tr><td class="nw"><code>INTERNAL_ERROR</code></td><td class="num nw">500</td><td>Beklenmeyen hata</td><td>"Bir şeyler ters gitti (kod: traceId kısaltması)."</td></tr></tbody></table></div>
+<h3 id="b7-5-3-uc-nokta-katalogu">5.3 Uç nokta kataloğu</h3>
+<p>Yetki sütunu: <strong>genel</strong> (oturumsuz), <strong>oyuncu</strong> (Bearer), <strong>belirteç</strong> (tek kullanımlık özel belirteç: kayıt, veli), <strong>çerez</strong> (yenileme çerezi), <strong>mod / içerik / yön</strong> (rol), <strong>webhook</strong> (imza). Hız sınırı politikaları §5.1'dedir. <code>15-17</code> işaretli uç noktalar (Yaş Kapısı v2: <code>15-17</code>, §11.5) <code>par</code> talebine göre sınırlanır. Tüm yollar <code>/v1</code> altındadır (sistem uç noktaları hariç).</p><div class="tablewrap scroll" tabindex="0" role="region" aria-label="Uç nokta kataloğu"><table><thead><tr><th>Yöntem</th><th>Yol</th><th>Amaç</th><th>Yetki</th><th>Limit</th></tr></thead><tbody><tr class="grp"><th colspan="5" scope="colgroup"><strong>Sistem</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/healthz</code>, <code>/readyz</code> (<code>/v1</code> dışı)</td><td>Canlılık / hazırlık</td><td>genel (iç ağ)</td><td>—</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/openapi.json</code></td><td>OpenAPI 3.1</td><td>genel</td><td>RL-PUBLIC</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/meta/client-config</code></td><td>Asgari istemci sürümü, özellik bayrakları, bakım</td><td>genel</td><td>RL-PUBLIC</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>Auth/OTP ve veli</strong></th></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/auth/otp/requests</code></td><td>OTP iste (6 hane, 90 sn)</td><td>genel</td><td>RL-OTP-SEND, RL-OTP-SEND-IP</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/auth/otp/verifications</code></td><td>OTP doğrula → oturum ya da kayıt belirteci</td><td>genel</td><td>RL-OTP-VERIFY</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/auth/registrations</code></td><td>Hesabı tamamla (takma ad, doğum yılı, rızalar, veli telefonu)</td><td>belirteç</td><td>RL-AUTH</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/auth/tokens/refresh</code></td><td>Erişim belirtecini yenile (döndürme)</td><td>çerez</td><td>RL-AUTH</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/auth/logout</code></td><td>Oturumu kapat</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/auth/sessions</code></td><td>Aktif cihaz ve oturumlar</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth delete">DELETE</span></td><td><code>/v1/auth/sessions/{sessionId}</code></td><td>Bir cihaz oturumunu sonlandır</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/auth/phone-changes</code></td><td>Telefon değiştir (eski + yeni numara OTP)</td><td>oyuncu</td><td>RL-OTP-SEND</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/players/me/guardian-consents</code></td><td>Veliye onay SMS'ini yeniden gönder (7 günde 3)</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/guardian-consents/{token}</code></td><td>Veli sayfası verisi (aydınlatma, çocuk takma adı)</td><td>belirteç</td><td>RL-PUBLIC</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/guardian-consents/{token}/decisions</code></td><td>Veli onayı/reddi (veli OTP'si ile)</td><td>belirteç</td><td>RL-AUTH</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/guardian-consents/{token}/revocations</code></td><td>Veli onayını geri çek</td><td>belirteç</td><td>RL-AUTH</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>Oyuncu/Profil</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/players/me</code></td><td>Oturum sahibi özeti (seviye, bakiye, slot, bayraklar)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth patch">PATCH</span></td><td><code>/v1/players/me</code></td><td>Profil ve ayar güncelle (dil, gizlilik)</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/players/{playerId}</code></td><td>Herkese açık profil</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/players/{playerId}/portfolio</code></td><td>İşletme portföyü, Nişan'lar, Rozet Duvarı</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/handles/availability</code></td><td>Takma ad uygunluğu (<code>?handle=</code>)</td><td>genel</td><td>20/dk/IP</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/players/me/handle-changes</code></td><td>Takma ad değiştir (500 B)</td><td>oyuncu</td><td>RL-MONEY</td></tr><tr><td>GET / PUT</td><td><code>/v1/players/me/avatar</code></td><td>Avatar oku / kaydet</td><td>oyuncu</td><td>RL-READ / RL-WRITE</td></tr><tr><td class="nw"><span class="mth put">PUT</span></td><td><code>/v1/players/me/language-track</code></td><td>Dil seçimi (C#)</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/language-waitlist</code></td><td>"Yakında — haber ver" kaydı</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>İlerleme</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/players/me/progress</code></td><td>XP, seviye, unvan, açılışlar</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/players/me/metro</code></td><td>Metro Haritası durakları</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/players/me/streak</code></td><td>Seri ve dondurma hakkı</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/players/me/streak/freezes</code></td><td>Seri Dondurucu kullan</td><td>oyuncu</td><td>RL-MONEY</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/districts</code></td><td>Semtler, kilit durumu (inşaat halinde / turist)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/districts/{districtSlug}/gate</code></td><td>Semt Sınavı kapı durumu</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/districts/{districtSlug}/exams</code></td><td>Semt Sınavı başlat (20 dk)</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>Eğitim ve Kurul</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/lessons</code></td><td>Ders listesi (<code>?district=</code>)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/lessons/{lessonId}</code></td><td>Ders içeriği (kartlar, Usta soruları)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/lessons/{lessonId}/attempts</code></td><td>Ders oturumu başlat</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth patch">PATCH</span></td><td><code>/v1/lesson-attempts/{attemptId}</code></td><td>Kart ilerlemesi kaydet</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/lesson-attempts/{attemptId}/answers</code></td><td>Deterministik soru cevabı (çoktan seçmeli, çıktı tahmini, sıralama)</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/lesson-attempts/{attemptId}/remediation-rounds</code></td><td>Telafi Turu başlat (10 dk sonra)</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/grading/submissions</code></td><td>Kurul'a cevap gönder (202)</td><td>oyuncu</td><td>RL-GRADE</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/grading/submissions/{submissionId}</code></td><td>Kurul Kartı / durum</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/grading/submissions/{submissionId}/followups</code></td><td>Usta takip sorusunu cevapla (en çok +10)</td><td>oyuncu</td><td>RL-GRADE</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/grading/submissions/{submissionId}/appeals</code></td><td>İtiraz (soru başına 1, günde 3)</td><td>oyuncu</td><td>RL-GRADE</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/hints</code></td><td>İpucu merdiveni (<code>?targetId=&amp;level=pusula|fener|taslak|ornek</code>)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/reviews/daily</code></td><td>Günlük Tekrar: 5 soru</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/reviews/daily/answers</code></td><td>Günlük Tekrar cevabı / tamamla</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/errors/translations/{csCode}</code></td><td>CS koduna Türkçe açıklama</td><td>oyuncu</td><td>RL-READ</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>Görev, Challenge ve kod</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/quests</code></td><td>Görev listesi ve durum</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/quests/{questId}</code></td><td>Görev ayrıntısı</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/challenges/{challengeId}</code></td><td>Challenge, oyuncu görünümü (gizli testsiz)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/challenges/{challengeId}/submissions</code></td><td>Kod gönder (202; kuyruk <code>code-run</code>)</td><td>oyuncu</td><td>RL-RUN</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/challenge-submissions/{submissionId}</code></td><td>Derleme + test sonucu</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/businesses/{businessId}/clarifications</code></td><td>Gereksinim Netleştirme: Müşteriye Sor</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/businesses/{businessId}/contract-card</code></td><td>Sözleşme Kartı</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/businesses/{businessId}/defenses</code></td><td>Savunma başlat (Kurul satır seçer)</td><td>oyuncu</td><td>RL-RUN</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/defenses/{defenseId}/answers</code></td><td>Savunma cevabı (202)</td><td>oyuncu</td><td>RL-GRADE</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/defenses/{defenseId}</code></td><td>Savunma sonucu (Açılış / Deneme)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/bug-reports</code></td><td>Hata Bildirimi dosyaları (günde 3)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/bug-reports/{bugReportId}/fixes</code></td><td>Düzeltme + 1 cümle neden gönder</td><td>oyuncu</td><td>RL-RUN</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>İşletme, ekonomi ve dünya</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/wallets/me</code></td><td>Bayt/Çip bakiyesi</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/wallets/me/ledger</code></td><td>Hareketler (imleç)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/players/me/licences</code></td><td>Ruhsat ilerlemesi</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/businesses/catalog</code></td><td>20 işletme: fiyat, kilit nedeni, slot</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/businesses</code></td><td>Benim işletmelerim</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/businesses</code></td><td>Tapu al (işletme oluştur)</td><td>oyuncu</td><td>RL-MONEY</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/businesses/{businessId}</code></td><td>İşletme ayrıntısı (durum, seviye, kasa)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth patch">PATCH</span></td><td><code>/v1/businesses/{businessId}</code></td><td>Ad (200 B) ve Vitrin ayarı</td><td>oyuncu</td><td>RL-MONEY</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/businesses/{businessId}/upgrades</code></td><td>Yükseltme satın al (L2–L5)</td><td>oyuncu</td><td>RL-MONEY</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/businesses/{businessId}/runs</code></td><td>Günlük gelir kayıtları (imleç)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/businesses/{businessId}/runs/{runDate}</code></td><td>Gün detayı, şikâyet balonları</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/businesses/{businessId}/vault/collections</code></td><td>Kasa topla</td><td>oyuncu</td><td>RL-MONEY</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/vault-collections</code></td><td>Hepsini Topla (Sev. 12+)</td><td>oyuncu</td><td>RL-MONEY</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/businesses/{businessId}/vitrin</code></td><td>Vitrin: kod + Savunma cevabı (L2+)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/streets/{streetId}</code></td><td>Ara Sokak ve parseller</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/world/map</code></td><td>Şehir Haritası verisi (hedef işaretçisi, Satılık arsalar)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/world/scenes/{sceneKey}/join-tickets</code></td><td>Shard ayır, hub bileti al</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/world/led-feed</code></td><td>LED pano anlık görüntüsü</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/world/meydan-question</code></td><td>Saatlik Meydan Sorusu</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/world/meydan-question/answers</code></td><td>Meydan Sorusu cevabı</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/payments/orders</code></td><td>Çip siparişi oluştur (PSP)</td><td>oyuncu (<code>par</code> gerekli: 15-17)</td><td>RL-MONEY</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/payments/orders/{orderId}</code></td><td>Sipariş durumu</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/payments/webhooks/{provider}</code></td><td>PSP ödeme bildirimi</td><td>webhook</td><td>RL-WEBHOOK</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>Oda ve ziyaret</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/rooms/me</code></td><td>Odam</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth put">PUT</span></td><td><code>/v1/rooms/me/layout</code></td><td>Eşya yerleşimini kaydet (<code>If-Match</code>)</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth patch">PATCH</span></td><td><code>/v1/rooms/me</code></td><td>Oda izin modu</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/rooms/me/upgrades</code></td><td>Daire / Çatı Katı (MVP+1)</td><td>oyuncu</td><td>RL-MONEY</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/rooms/{roomId}</code></td><td>Oda içeriği (ziyaret)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/visitor-books/{targetType}/{targetId}</code></td><td>Ziyaretçi defteri (son 20)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/applause</code></td><td>Alkış ver (yer başına günde 1)</td><td>oyuncu</td><td>RL-SOCIAL</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>Pazar ve envanter</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/market/shelves</code></td><td>Bayt rafları, Butik, Rütbe Rafı, haftalık rotasyon</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/market/items/{sku}</code></td><td>Eşya ayrıntısı</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/market/purchases</code></td><td>Satın al (Bayt ya da Çip)</td><td>oyuncu</td><td>RL-MONEY</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/inventory</code></td><td>Envanter</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth put">PUT</span></td><td><code>/v1/inventory/equipment</code></td><td>Giyilenleri kaydet (Dolap)</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>Sosyal ve sohbet</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/friends</code></td><td>Arkadaş listesi</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/friend-requests</code></td><td>Arkadaşlık isteği (takma ad ya da kod)</td><td>oyuncu</td><td>RL-SOCIAL</td></tr><tr><td class="nw"><span class="mth put">PUT</span></td><td><code>/v1/friend-requests/{requestId}</code></td><td>Kabul / reddet</td><td>oyuncu</td><td>RL-SOCIAL</td></tr><tr><td class="nw"><span class="mth delete">DELETE</span></td><td><code>/v1/friends/{playerId}</code></td><td>Arkadaşlıktan çıkar</td><td>oyuncu</td><td>RL-SOCIAL</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/friends/presence</code></td><td>Çevrimiçi arkadaşlar ve konumları (izinli)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/invites/redeem</code></td><td>Davet kodunu kullan (iki tarafa 100 B, ilk Bayt sonrası)</td><td>oyuncu</td><td>RL-SOCIAL</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/invites/me</code></td><td>Benim davet kodum ve durum</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/leagues/current</code></td><td>Haftalık lig (kova, sıra)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/leaderboards/{board}</code></td><td>Liderlik (<code>weekly</code>, <code>kalicilik</code>, <code>en-hizli-otopark</code>, <code>en-kazancli</code>)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/chat/connection-tickets</code></td><td>Sohbet hub'ı için tek kullanımlık bilet</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/chat/dm/{playerId}/messages</code></td><td>DM geçmişi (arkadaş; 15-17 <code>par</code>)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/chat/reports</code></td><td>Mesaj şikâyeti</td><td>oyuncu</td><td>RL-REPORT</td></tr><tr><td>POST / DELETE</td><td><code>/v1/blocks</code>, <code>/v1/blocks/{playerId}</code></td><td>Engelle / engeli kaldır</td><td>oyuncu</td><td>RL-SOCIAL</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>Bildirim</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/notifications</code></td><td>Gelen kutusu (imleç)</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/notifications/reads</code></td><td>Okundu işaretle</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td>PUT / DELETE</td><td><code>/v1/push-subscriptions</code>, <code>/v1/push-subscriptions/{id}</code></td><td>Web Push aboneliği</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td>GET / PUT</td><td><code>/v1/players/me/notification-preferences</code></td><td>Bildirim tercihleri</td><td>oyuncu</td><td>RL-READ / RL-WRITE</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>KVKK</strong></th></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/privacy/notices</code></td><td>Aydınlatma metinleri (sürümlü)</td><td>genel</td><td>RL-PUBLIC</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/privacy/consents</code></td><td>Açık rıza ver / geri çek</td><td>oyuncu</td><td>RL-WRITE</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/privacy/data-exports</code></td><td>Veri indirme talebi (202)</td><td>oyuncu (OTP ile yeniden doğrulama)</td><td>3/gün</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/privacy/data-exports/{exportId}</code></td><td>İndirme durumu / süreli bağlantı</td><td>oyuncu</td><td>RL-READ</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/privacy/erasure-requests</code></td><td>Hesap silme talebi (7 gün bekleme)</td><td>oyuncu (OTP)</td><td>3/gün</td></tr><tr><td>GET / DELETE</td><td><code>/v1/privacy/erasure-requests/{requestId}</code></td><td>Durum / bekleme süresinde vazgeç</td><td>oyuncu</td><td>RL-READ / RL-WRITE</td></tr><tr class="grp"><th colspan="5" scope="colgroup"><strong>Yönetim (iç araçlar)</strong></th></tr><tr><td>GET / POST / PUT</td><td><code>/v1/admin/content/items</code>, <code>/{itemId}</code></td><td>İçerik taslağı oluştur/düzenle</td><td>içerik</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/admin/content/items/{itemId}/publications</code></td><td>İçeriği yayınla (yazar ≠ inceleyen)</td><td>içerik</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/admin/moderation/cases</code></td><td>Vaka kuyruğu</td><td>mod</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/admin/moderation/cases/{caseId}/actions</code></td><td>Uyarı / susturma / yasak</td><td>mod</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/admin/economy/dashboard</code></td><td>Haftalık ekonomi panosu (B2 §10.5)</td><td>yön</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/admin/economy/adjustments</code></td><td>Defter düzeltmesi iste (dört göz)</td><td>yön</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/admin/economy/adjustments/{id}/approvals</code></td><td>Düzeltmeyi onayla (farklı yönetici)</td><td>yön</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/admin/ai/calibration</code></td><td>Kalibrasyon paneli (kappa, sapma, itiraz oranı)</td><td>yön</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/admin/ai/golden-set</code></td><td>Altın küme ekle</td><td>yön</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/admin/players/{playerId}</code></td><td>Destek görünümü (maskeli)</td><td>yön</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/admin/players/{playerId}/suspensions</code></td><td>Askıya al / kaldır</td><td>yön</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/admin/queues</code></td><td>Kuyruk durumu, DLQ derinliği</td><td>yön</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth post">POST</span></td><td><code>/v1/admin/queues/{queue}/dead-letters/{messageId}/requeues</code></td><td>Ölü mektubu yeniden kuyruğa al</td><td>yön</td><td>RL-ADMIN</td></tr><tr><td class="nw"><span class="mth get">GET</span></td><td><code>/v1/admin/sandbox/status</code></td><td>Sandbox havuzu, p95, ihlal sayacı</td><td>yön</td><td>RL-ADMIN</td></tr></tbody></table></div><p>Katalog 138 uç nokta içerir (129 tablo satırı; birleşik <code>GET / PUT</code> benzeri satırlar ayrı sayılmıştır).</p>
+<h3 id="b7-5-4-kritik-20-uc-nokta-istek-ve-yanit-ornekleri">5.4 Kritik 20 uç nokta: istek ve yanıt örnekleri</h3>
+<p>Örneklerde tek bir oyuncu hikâyesi izlenir: <strong>Ayşe</strong> (<code>ayse_kod</code>, 2011 doğumlu, 15–17 bandı, veli onayı bekliyor) VİZYON §4'ün ilk 70 dakikasını yaşar. Sayılar KANON'dandır (OTP 90 sn / 60 sn; ilk soru 82/100 → +25 XP → 85 XP → Sev. 2; Çırak Şapkası 30 B; Tapu 300 B; Otopark L1 ≈ 220 B/gün, kasa ≈ 73 B). Kimlikler kısaltılmıştır. Her örnek <strong>istek</strong>, <strong>başarı</strong> ve <strong>hata</strong> yanıtı içerir.</p>
+<details class="acc"><summary id="b7-5-4-1-post-v1-auth-otp-requests-otp-iste">5.4.1 <code>POST /v1/auth/otp/requests</code>: OTP iste</summary>
+<p>Telefonun kayıtlı olup olmadığı yanıttan <strong>anlaşılamaz</strong> (hesap numaralandırma savunması): yeni ve mevcut numara aynı yanıtı alır.</p><pre class="code" data-lang="json"><code>POST /v1/auth/otp/requests HTTP/1.1
+Content-Type: application/json
+X-Client-Version: web/1.4.2
+
+{ "phone": "+905551112233", "deviceId": "d_7Qk2mXw9sLr4", "purpose": "login", "turnstileToken": null }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{ "challengeId": "0193a0b1-0c2e-7d90-8a44-5e61f0b2c3d4", "expiresInSec": 90, "resendAfterSec": 60, "codeLength": 6, "sendsLeftThisHour": 4 }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 41
+
+{ "type": "https://api.kodkent.com/problems/otp-resend-too-soon", "title": "Çok sık kod istendi",
+  "status": 429, "detail": "Yeni kod için 41 saniye beklemelisin.", "instance": "/v1/auth/otp/requests",
+  "code": "OTP_RESEND_TOO_SOON", "retryAfterSec": 41, "traceId":"00-9f1c0d7b2a4e4f3a8c1d5e6f70819a2b-3c4d5e6f70819a2b-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-2-post-v1-auth-otp-verifications-otp-dogrula">5.4.2 <code>POST /v1/auth/otp/verifications</code>: OTP doğrula</summary>
+<pre class="code" data-lang="json"><code>POST /v1/auth/otp/verifications HTTP/1.1
+Content-Type: application/json
+
+{ "challengeId": "0193a0b1-0c2e-7d90-8a44-5e61f0b2c3d4", "code": "482910", "deviceId": "d_7Qk2mXw9sLr4" }</code></pre><p>Yeni numara için kayıt belirteci döner (mevcut numarada <code>status: "authenticated"</code> ve erişim belirteci + yenileme çerezi):</p><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+
+{ "status": "registration_required", "registrationToken": "rt_5Hn8Vb2Qe7Zc1Ld9", "expiresInSec": 600 }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 422 Unprocessable Content
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/otp-invalid", "title": "Kod yanlış", "status": 422,
+  "detail": "Kod yanlış. Bu saat içinde 3 hakkın kaldı.", "instance": "/v1/auth/otp/verifications",
+  "code": "OTP_INVALID", "attemptsLeftThisHour": 3, "challengeAttemptsLeft": 2,
+  "traceId":"00-1a2b3c4d5e6f40718293a4b5c6d7e8f9-0a1b2c3d4e5f6071-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-3-post-v1-auth-registrations-hesabi-tamamla">5.4.3 <code>POST /v1/auth/registrations</code>: hesabı tamamla</summary>
+<p>Aydınlatma metni sürümü kaydedilir; açık rıza kutuları <strong>varsayılan kapalıdır</strong> ve ayrı ayrı sorulur (§11.6). 15–17 için veli telefonu zorunludur ve veliye SMS gider.</p><pre class="code" data-lang="json"><code>POST /v1/auth/registrations HTTP/1.1
+Content-Type: application/json
+
+{ "registrationToken": "rt_5Hn8Vb2Qe7Zc1Ld9", "handle": "ayse_kod", "displayName": "Ayşe", "birthYear": 2011, "birthMonth": null,
+  "guardianPhone": "+905559998877", "cohortCode": "KULUP42",
+  "consents": { "noticeVersion": "2026-11-01", "termsVersion": "2026-11-01", "analytics": false, "marketing": false, "aiCalibration": false } }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 201 Created
+Content-Type: application/json
+Set-Cookie: kk_rt=…; HttpOnly; Secure; SameSite=Strict; Path=/v1/auth/tokens; Max-Age=2592000
+
+{ "player": { "id": "0193a0b2-4c1d-7e55-9a21-6f3d8c2b1a07", "handle": "ayse_kod", "displayName": "Ayşe", "ageBand": "13-15" },
+  "accessToken": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImsyMDI2MTEifQ…", "expiresInSec": 900,
+  "guardian": { "state": "pending", "expiresAt": "2026-11-05T21:14:03Z" },
+  "restrictions": ["free_text_chat_off", "dm_off", "room_visibility_friends_only", "chip_purchase_off"] }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/age-too-low", "title": "Henüz kayıt olamazsın", "status": 403,
+  "detail": "KodKent 13 yaş ve üzeri içindir. Büyüyünce seni burada bekleriz.", "instance": "/v1/auth/registrations",
+  "code": "AGE_TOO_LOW", "traceId":"00-2b3c4d5e6f4071829304a5b6c7d8e9fa-1b2c3d4e5f607182-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-4-post-v1-auth-tokens-refresh-erisim-belirtecini-yenile">5.4.4 <code>POST /v1/auth/tokens/refresh</code>: erişim belirtecini yenile</summary>
+<p>İstek gövdesi boştur; yenileme belirteci <code>HttpOnly</code> çerezdedir ve <strong>her kullanımda döner</strong>.</p><pre class="code" data-lang="json"><code>POST /v1/auth/tokens/refresh HTTP/1.1
+Cookie: kk_rt=…
+Origin: https://kodkent.com
+Content-Type: application/json
+
+{}</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+Set-Cookie: kk_rt=…(yeni); HttpOnly; Secure; SameSite=Strict; Path=/v1/auth/tokens; Max-Age=2592000
+
+{ "accessToken": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImsyMDI2MTEifQ…", "expiresInSec": 900 }</code></pre><p>Kullanılmış bir belirteç yeniden sunulursa (çalıntı şüphesi) tüm aile iptal edilir:</p><pre class="code" data-lang="json"><code>HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Set-Cookie: kk_rt=; Max-Age=0; Path=/v1/auth/tokens
+
+{ "type": "https://api.kodkent.com/problems/refresh-reuse", "title": "Oturumun sonlandırıldı", "status": 401,
+  "detail": "Güvenliğin için tüm cihazlardaki oturumların kapatıldı. Lütfen yeniden giriş yap.",
+  "instance": "/v1/auth/tokens/refresh", "code": "REFRESH_REUSE_DETECTED",
+  "traceId":"00-3c4d5e6f40718293a4b5c6d7e8f9fa0b-2c3d4e5f60718293-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-5-get-v1-players-me-oturum-sahibi-ozeti">5.4.5 <code>GET /v1/players/me</code>: oturum sahibi özeti</summary>
+<p>İlk görev (Meydan Saati: +60 XP, +40 B) sonrasında:</p><pre class="code" data-lang="json"><code>GET /v1/players/me HTTP/1.1
+Authorization: Bearer eyJ…</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+Cache-Control: private, no-store
+
+{ "id": "0193a0b2-4c1d-7e55-9a21-6f3d8c2b1a07", "handle": "ayse_kod", "displayName": "Ayşe", "title": "cirak",
+  "level": 2, "xp": { "total": 145, "intoLevel": 65, "forNext": 200 },
+  "wallets": { "BAYT": 40, "CIP": 0 }, "language": "csharp", "ageBand": "13-15",
+  "guardian": { "state": "pending", "expiresAt": "2026-11-05T21:14:03Z" },
+  "flags": { "freeTextChat": false, "roomVisibilityDefault": "arkadaslara", "chipPurchase": false },
+  "slots": { "businessesUsed": 0, "businessesMax": 1 },
+  "unlocked": { "districts": ["carsi"], "room": true },
+  "serverTime": "2026-11-02T21:34:03Z", "businessDayStartsAt": "2026-11-03T01:00:00Z" }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+WWW-Authenticate: Bearer error="invalid_token", error_description="expired"
+
+{ "type": "https://api.kodkent.com/problems/token-expired", "title": "Oturum süresi doldu", "status": 401,
+  "detail": "Erişim belirtecinin süresi doldu.", "instance": "/v1/players/me", "code": "TOKEN_EXPIRED",
+  "traceId":"00-4d5e6f4071829304a5b6c7d8e9fa0b1c-3d4e5f6071829304-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-6-get-v1-lessons-lessonid-ders-icerigi">5.4.6 <code>GET /v1/lessons/{lessonId}</code>: ders içeriği</summary>
+<p>Ders içeriğinin ayrıntılı şeması B4/B3'ündür; burada yalnızca zarf gösterilir. Kürsü kilitli semtte gezilebilir, ama <strong>ders içeriği</strong> kilitlidir.</p><pre class="code" data-lang="json"><code>GET /v1/lessons/1.2 HTTP/1.1
+Authorization: Bearer eyJ…</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+ETag: "1.2-v3"
+
+{ "id": "1.2", "title": "Sayılar ve Yuvarlama", "district": "carsi", "tier": 1, "version": 3, "state": "available",
+  "cards": [
+    { "index": 0, "kind": "anlat", "text": "Tam sayı bölmesi küsuratı atar: 7 / 2 işleminin sonucu 3'tür." },
+    { "index": 1, "kind": "kod", "text": "Başlayan saati tam saymak için:", "code": "int saat = (dakika + 59) / 60;" } ],
+  "questions": [ { "id": "q-1.2-kavram", "type": "kavram", "rubric": { "dogruluk": 50, "tamlik": 30, "aciklik": 20 },
+                   "prompt": "`(dakika + 59) / 60` ifadesi neden dakikayı saate yukarı yuvarlar? Kendi cümlelerinle anlat." } ],
+  "seal": { "needed": 2, "of": 3, "passed": 0 }, "hintsAvailable": ["pusula", "fener", "taslak", "ornek"] }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/district-locked", "title": "Semt henüz açık değil", "status": 403,
+  "detail": "Liman: Çarşı Sınavı'ndan sonra açılıyor.", "instance": "/v1/lessons/2.1", "code": "DISTRICT_LOCKED",
+  "requires": { "level": 6, "districtExam": "carsi" }, "touristModeAvailable": true,
+  "traceId":"00-5e6f4071829304a5b6c7d8e9fa0b1c2d-4e5f607182930415-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-7-post-v1-grading-submissions-kurul-a-cevap-gonder">5.4.7 <code>POST /v1/grading/submissions</code>: Kurul'a cevap gönder</summary>
+<p>Cevap <strong>veridir, talimat değildir</strong>; sunucu 1.500 karakteri aşanı reddeder. İstek hemen <code>202</code> döner; puanlama kuyruktadır (§10).</p><pre class="code" data-lang="json"><code>POST /v1/grading/submissions HTTP/1.1
+Authorization: Bearer eyJ…
+Idempotency-Key: 0193a0c3-1d2e-7f40-9b55-6a72e1c3d4f5
+Content-Type: application/json
+
+{ "lessonAttemptId": "0193a0c0-8e11-7a02-b3c4-d5e6f7a8b9c0", "questionId": "q-1.1-kavram",
+  "answer": "`yas` bir kutu, `17` içine koyduğum değer, `int` de kutunun tam sayı tutacağını söyleyen etiket." }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 202 Accepted
+Content-Type: application/json
+Location: /v1/grading/submissions/0193a0c3-2e3f-7a50-8c66-7b83f2d4e5a6
+
+{ "submissionId": "0193a0c3-2e3f-7a50-8c66-7b83f2d4e5a6", "status": "queued", "attemptNo": 1,
+  "quota": { "usedToday": 1, "limit": 30, "deferred": false }, "etaMs": 4000 }</code></pre><p>Günlük 30 etkileşim dolduysa istek <strong>reddedilmez</strong>, ertelenir (KANON §9): ders kilitlenmez, cevap gece Batch ile puanlanır.</p><pre class="code" data-lang="json"><code>HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{ "submissionId": "0193a0c3-2e3f-7a50-8c66-7b83f2d4e5a7", "status": "deferred_quota", "attemptNo": 1,
+  "quota": { "usedToday": 30, "limit": 30, "deferred": true },
+  "message": "Kurul bugünlük kapandı, cevabın sırada. XP sabah gelecek." }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/attempts-exhausted", "title": "Haklarını kullandın", "status": 409,
+  "detail": "Bu soru için 2 hakkını da kullandın. Telafi Turu 10 dakika sonra açılacak.", "instance": "/v1/grading/submissions",
+  "code": "ATTEMPTS_EXHAUSTED", "requires": { "remediationAt": "2026-11-02T21:44:03Z" },
+  "traceId":"00-6f407182930415a6b7c8d9eafb0c1d2e3-5f60718293041526-01" }</code></pre><hr>
+</details>
+<details class="acc"><summary id="b7-5-4-8-get-v1-grading-submissions-submissionid-kurul-karti">5.4.8 <code>GET /v1/grading/submissions/{submissionId}</code>: Kurul Kartı</summary>
+<p><code>card</code> alanı <strong>B3'ün Kurul JSON şemasıdır</strong> ve aynen taşınır (talimat §3). Sunucu ek olarak XP ödülünü ve Ders Mührü durumunu verir. Puan 82 → T1 tabanı 30 × 0,82 ≈ 25 XP (B2 §4.2); XP toplamı 85 → Seviye 2 (eşik 80).</p><pre class="code" data-lang="json"><code>GET /v1/grading/submissions/0193a0c3-2e3f-7a50-8c66-7b83f2d4e5a6 HTTP/1.1
+Authorization: Bearer eyJ…</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+
+{ "submissionId": "0193a0c3-2e3f-7a50-8c66-7b83f2d4e5a6", "status": "done", "cacheHit": false,
+  "card": {
+    "puan": 82,
+    "olcutler": [
+      { "ad": "Doğruluk", "puan": 45, "not": "'Kutu' benzetmen doğru." },
+      { "ad": "Tamlık",   "puan": 22, "not": "Türün neden önemli olduğu eksik." },
+      { "ad": "Açıklık",  "puan": 15, "not": "Üç terimi ayırdın ama son cümle dağınık." } ],
+    "geri_bildirim": "Ayşe, 'kutu' benzetmen çok yerinde: `yas` kutu, `17` içindeki değer. Eksik olan, `int`'in kutuya yalnızca tam sayı girebileceğini söylemesi. Sonraki kartta tam bunu göreceksin; kendi cümlenle bir örnek düşün.",
+    "takip_sorusu": "Peki `int` yerine `string` yazsaydık 17 kutuya sığar mıydı?",
+    "guven": 0.88, "kopya_suphesi": false },
+  "award": { "xp": 25, "xpTotal": 85, "passed": true, "bright": false, "levelUp": { "from": 1, "to": 2 } },
+  "seal": { "needed": 2, "of": 3, "passed": 1 }, "appealAvailable": true }</code></pre><p>Henüz bitmediyse aynı uç nokta durum döner (istemci hub'dan <code>job.completed</code> bekler, yoklama yedektir):</p><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+Retry-After: 2
+
+{ "submissionId": "0193a0c3-2e3f-7a50-8c66-7b83f2d4e5a6", "status": "scoring", "stage": "sonnet", "etaMs": 2500 }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/not-found", "title": "Bulunamadı", "status": 404,
+  "detail": "Böyle bir puanlama kaydı yok.", "instance": "/v1/grading/submissions/0193a0c3-ffff-7a50-8c66-7b83f2d4e5a6",
+  "code": "NOT_FOUND", "traceId":"00-7a8b9c0d1e2f40718293a4b5c6d7e8f9-6a7b8c9d0e1f2031-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-9-post-v1-grading-submissions-submissionid-appeals-itiraz">5.4.9 <code>POST /v1/grading/submissions/{submissionId}/appeals</code>: itiraz</summary>
+<p>Soru başına 1, günde 3 itiraz; <code>claude-opus-5-5</code> <strong>kör</strong> yeniden puanlar (§10.6); fark ≥ 15 ise yeni puan geçerlidir (KANON §9).</p><pre class="code" data-lang="json"><code>POST /v1/grading/submissions/0193a0c3-2e3f-7a50-8c66-7b83f2d4e5a6/appeals HTTP/1.1
+Authorization: Bearer eyJ…
+Idempotency-Key: 0193a0c5-3f40-7b60-9d77-8c94a3e5f6b7
+Content-Type: application/json
+
+{ "reason": "Cevabımda türün tam sayı tutmasını açıkladığımı düşünüyorum." }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{ "appealId": "0193a0c5-4051-7c70-8e88-9da5b4f6a7c8", "status": "queued", "dailyAppealsLeft": 2, "etaMs": 8000 }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/appeal-already-filed", "title": "İtiraz hakkını kullandın", "status": 409,
+  "detail": "Bu soru için zaten bir itirazın var.", "instance": "/v1/grading/submissions/0193a0c3-2e3f-7a50-8c66-7b83f2d4e5a6/appeals",
+  "code": "APPEAL_ALREADY_FILED", "traceId":"00-8b9c0d1e2f4071829304a5b6c7d8e9fa-7b8c9d0e1f203142-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-10-get-v1-challenges-challengeid-challenge-oyuncu-gorunumu">5.4.10 <code>GET /v1/challenges/{challengeId}</code>: challenge (oyuncu görünümü)</summary>
+<p><code>challenge</code> bölümü <strong>B5 Challenge Spec'inin oyuncuya açık izdüşümüdür</strong>; alan adları B5'indir. <code>hidden_tests</code>, <code>seeded_tests</code> içeriği, <code>edge_cases</code>, <code>savunma_sorulari</code>, <code>rubrik</code> ve referans çözüm <strong>sunucuda ayıklanır</strong>; oyuncu yalnızca adetleri görür. <code>sozlesme_karti</code> Gereksinim Netleştirme tamamlanana dek boştur. Açık testler KANON §5.1 tablosundaki 6 vakadır.</p><pre class="code" data-lang="json"><code>GET /v1/challenges/otopark-L1 HTTP/1.1
+Authorization: Bearer eyJ…</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+Cache-Control: private, max-age=60
+
+{ "challenge": {
+    "id": "otopark-L1", "isletme": "otopark", "seviye": 1, "baslik": "Otopark ücret hesabı",
+    "musteri_istegi": "2 saatten az kalanlar: saati 100 TL. 2–6 saat arası: her saat 40 TL. 6–24 saat arası kalanlar: günlük 250 TL. Bunu hesaplayan bir sistem istiyorum.",
+    "sozlesme_karti": [],
+    "imza": "public static int Otopark.UcretHesapla(int dakika)",
+    "iskelet_kod": "// İş emri #1 — Otopark (Çarşı) — Müşteri: Hasan Abi\npublic static class Otopark\n{\n    // dakika: aracın içeride kaldığı toplam süre (0 veya daha büyük)\n    // dönüş: ödenecek ücret, TL (tam sayı)\n    public static int UcretHesapla(int dakika)\n    {\n        // kodun buraya\n    }\n}\n",
+    "public_tests": [
+      { "id": "A1", "girdi": [30],   "beklenen": 100, "etiket": "Başlayan 1. saat" },
+      { "id": "A2", "girdi": [61],   "beklenen": 200, "etiket": "Başlayan 2. saat, hâlâ 2 saatten az" },
+      { "id": "A3", "girdi": [120],  "beklenen": 80,  "etiket": "Tam 2 saat: 2 × 40" },
+      { "id": "A4", "girdi": [121],  "beklenen": 120, "etiket": "Başlayan 3. saat" },
+      { "id": "A5", "girdi": [361],  "beklenen": 250, "etiket": "6 saati aştı: günlük" },
+      { "id": "A6", "girdi": [1441], "beklenen": 500, "etiket": "2. gün başladı" } ],
+    "gizli_test_adedi": 14, "tohumlu_test_adedi": 6,
+    "ipucu_kademeleri": ["pusula", "fener", "taslak", "ornek"],
+    "odul": { "xp": 300, "bayt": 0 } },
+  "state": { "businessId": "0193a4d9-7b02-7a31-b6c4-2e9f01d35c88", "businessStatus": "kapali",
+             "clarifications": { "required": 4, "asked": 0 }, "submissions": 0 } }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/licence-missing", "title": "Önce tapu gerekli", "status": 403,
+  "detail": "Otopark iş emrini görmek için önce Tapu'yu almalısın (Ruhsat 2/3).", "instance": "/v1/challenges/otopark-L1",
+  "code": "LICENCE_MISSING", "requires": { "licence": "otopark", "have": 2, "need": 3, "deed": true },
+  "traceId":"00-9c0d1e2f4071829304a5b6c7d8e9fa0b-8c9d0e1f20314253-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-11-post-v1-challenges-challengeid-submissions-kod-gonder">5.4.11 <code>POST /v1/challenges/{challengeId}/submissions</code>: kod gönder</summary>
+<p>İstek <code>202</code> döner ve <code>code-run</code> kuyruğuna girer. Oyuncu kodunun yazma süresi ve yapıştırma sayısı telemetri olarak gelir (KANON §9 kopya kuralı: yazım &lt; 30 sn ya da AST benzerliği &gt; %95 → Savunma zorunlu, Bayt Savunma sonrası). Telemetri <strong>işaret</strong>tir, ceza değildir.</p><pre class="code" data-lang="json"><code>POST /v1/challenges/otopark-L1/submissions HTTP/1.1
+Authorization: Bearer eyJ…
+Idempotency-Key: 0193a4e0-0a11-7b22-9c33-4d55e6f7a8b9
+Content-Type: application/json
+
+{ "businessId": "0193a4d9-7b02-7a31-b6c4-2e9f01d35c88",
+  "source": "public static class Otopark\n{\n    public static int UcretHesapla(int dakika)\n    {\n        if (dakika &lt;= 0) return 0;\n        int saat = (dakika + 59) / 60;\n        if (dakika &lt; 120) return saat * 100;\n        if (dakika &lt;= 360) return saat * 40;\n        int gun = (dakika + 1439) / 1440;\n        return gun * 250;\n    }\n}\n",
+  "telemetry": { "pasteCount": 0, "typingMs": 912000, "keyToSubmitMs": 4200 } }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 202 Accepted
+Content-Type: application/json
+Location: /v1/challenge-submissions/0193a4e0-0b22-7c33-8d44-5e66f7a8b9c0
+
+{ "submissionId": "0193a4e0-0b22-7c33-8d44-5e66f7a8b9c0", "status": "queued", "queue": "code-run:p0", "etaMs": 1800 }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/clarification-required", "title": "Önce müşteriye sor", "status": 409,
+  "detail": "Müşteriye sormadan kod yazan iki kere yazar. En az 4 soru sor; şu an 2 soru sordun.",
+  "instance": "/v1/challenges/otopark-L1/submissions", "code": "CLARIFICATION_REQUIRED",
+  "requires": { "clarifications": { "need": 4, "have": 2 } },
+  "traceId":"00-ad1e2f4071829304a5b6c7d8e9fa0b1c-9d0e1f2031425364-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-12-get-v1-challenge-submissions-submissionid-derleme-ve-test-sonucu">5.4.12 <code>GET /v1/challenge-submissions/{submissionId}</code>: derleme ve test sonucu</summary>
+<p>Sonuç hakem sürecinin JSON satırlarından (§8.4) üretilir. Gizli ve tohumlu testlerde <strong>girdi ve beklenen değer asla dönmez</strong>; kalan test yalnızca kategori etiketiyle bildirilir ("Müfettiş şikâyet balonu", VİZYON §7).</p><pre class="code" data-lang="json"><code>GET /v1/challenge-submissions/0193a4e0-0b22-7c33-8d44-5e66f7a8b9c0 HTTP/1.1
+Authorization: Bearer eyJ…</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+
+{ "submissionId": "0193a4e0-0b22-7c33-8d44-5e66f7a8b9c0", "status": "done", "challengeId": "otopark-L1",
+  "compile": { "ok": true, "ms": 41, "diagnostics": [] },
+  "tests": {
+    "public": { "passed": 6, "total": 6, "items": [
+      { "id": "A1", "status": "gecti", "girdi": [30], "beklenen": 100, "gercek": 100 },
+      { "id": "A3", "status": "gecti", "girdi": [120], "beklenen": 80, "gercek": 80 } ] },
+    "hidden": { "passed": 14, "total": 14, "failedLabels": [] },
+    "seeded": { "passed": 6, "total": 6 } },
+  "verdict": "savunma_bekliyor", "next": { "defense": "/v1/businesses/0193a4d9-7b02-7a31-b6c4-2e9f01d35c88/defenses" },
+  "durationMs": 412 }</code></pre><p>Derleme hatası bir HTTP hatası değil <strong>sonuçtur</strong>; mesaj, en sık 50 CS kodu için statik Türkçe tablodan (KANON §9) gelir:</p><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+
+{ "submissionId": "0193a4e0-0c33-7d44-8e55-6f77a8b9c0d1", "status": "compile_error", "challengeId": "otopark-L1",
+  "compile": { "ok": false, "ms": 38, "diagnostics": [
+    { "code": "CS1002", "line": 6, "column": 38, "messageTr": "Satır sonunda `;` eksik.", "raw": "; expected" } ] },
+  "tests": null, "verdict": "derlenemedi" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-13-post-v1-businesses-tapu-al">5.4.13 <code>POST /v1/businesses</code>: Tapu al</summary>
+<p>Ön koşullar (Ruhsat 3/3, seviye, bakiye, slot) <strong>tek işlemde, oyuncu kilidi altında</strong> denetlenir; işletme satırı, defter işlemi ve olay aynı işlemde yazılır (§9.3).</p><pre class="code" data-lang="json"><code>POST /v1/businesses HTTP/1.1
+Authorization: Bearer eyJ…
+Idempotency-Key: 0193a4d9-6a00-7a11-8b22-3c44d5e6f7a8
+Content-Type: application/json
+
+{ "kind": "otopark" }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /v1/businesses/0193a4d9-7b02-7a31-b6c4-2e9f01d35c88
+
+{ "business": { "id": "0193a4d9-7b02-7a31-b6c4-2e9f01d35c88", "kind": "otopark", "district": "carsi", "level": 1, "status": "kapali",
+                "address": "Çarşı · Tente Sokak No: 3", "street": { "id": "0193a000-1111-7222-8333-944455556666", "slot": 3 } },
+  "price": 300, "wallet": { "BAYT": { "before": 340, "after": 40 } }, "ledgerTxId": "0193a4d9-7c11-7b22-9c33-4d55e6f7a8b9",
+  "next": { "workOrder": "/v1/challenges/otopark-L1", "npc": "Hasan Abi" } }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 402 Payment Required
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/insufficient-funds", "title": "Bakiye yetersiz", "status": 402,
+  "detail": "Tapu için 300 B gerekiyor, cüzdanında 240 B var.", "instance": "/v1/businesses",
+  "code": "INSUFFICIENT_FUNDS", "requires": { "currency": "BAYT", "required": 300, "available": 240 },
+  "traceId":"00-be2f4071829304a5b6c7d8e9fa0b1c2d-ae0f102031425364-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-14-post-v1-businesses-businessid-vault-collections-kasa-topla">5.4.14 <code>POST /v1/businesses/{businessId}/vault/collections</code>: kasa topla</summary>
+<p>Kasa tembel hesaplanır (§9.4); toplama tam Bayt'ı öder, kesir kasada kalır. Otopark L1: 220 B/gün ÷ 24 = 9,1667 B/sa; 8 saatte 73,33 B → 73 B toplanır, 0,33 B kalır.</p><pre class="code" data-lang="json"><code>POST /v1/businesses/0193a4d9-7b02-7a31-b6c4-2e9f01d35c88/vault/collections HTTP/1.1
+Authorization: Bearer eyJ…
+Idempotency-Key: 0193a9f0-1b22-7c33-8d44-5e66f7a8b9c0
+Content-Type: application/json
+
+{}</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+
+{ "collected": 73,
+  "vault": { "balance": 0.3333, "ratePerHour": 9.1667, "capHours": 8, "capBayt": 73.3333, "fullInHours": 7.96 },
+  "wallet": { "BAYT": { "before": 40, "after": 113 } }, "idleFullHours": 0.0,
+  "ledgerTxId": "0193a9f0-1c33-7d44-8e55-6f77a8b9c0d1" }</code></pre><p>Aynı <code>Idempotency-Key</code> ile ikinci istek (ağ yeniden denemesi) <strong>aynı yanıtı</strong> döner ve bakiye ikinci kez artmaz:</p><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Idempotent-Replayed: true
+Content-Type: application/json
+
+{ "collected": 73, "vault": { "balance": 0.3333, "ratePerHour": 9.1667, "capHours": 8, "capBayt": 73.3333, "fullInHours": 7.96 },
+  "wallet": { "BAYT": { "before": 40, "after": 113 } }, "idleFullHours": 0.0, "ledgerTxId": "0193a9f0-1c33-7d44-8e55-6f77a8b9c0d1" }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/vault-empty", "title": "Kasada toplanacak Bayt yok", "status": 409,
+  "detail": "Kasada henüz tam bir Bayt birikmedi (0,6 B). Birkaç dakika sonra tekrar bak.",
+  "instance": "/v1/businesses/0193a4d9-7b02-7a31-b6c4-2e9f01d35c88/vault/collections", "code": "VAULT_EMPTY",
+  "requires": { "vaultBalance": 0.6 }, "traceId":"00-cf3041718293a4b5c6d7e8f9fa0b1c2d-bf10203142536475-01" }</code></pre><hr>
+</details>
+<details class="acc"><summary id="b7-5-4-15-get-v1-businesses-businessid-runs-gunluk-gelir-kayitlari">5.4.15 <code>GET /v1/businesses/{businessId}/runs</code>: günlük gelir kayıtları</summary>
+<p>İşletme Paneli'nin TL ve B grafiğini besler (KANON §6 #14). <code>cappedTl = min(playerTl, referenceTl)</code>; sapma şikâyet balonuna dönüşür, kategori etiketi verilir ama gizli girdi verilmez.</p><pre class="code" data-lang="json"><code>GET /v1/businesses/0193a4d9-7b02-7a31-b6c4-2e9f01d35c88/runs?limit=2 HTTP/1.1
+Authorization: Bearer eyJ…</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+
+{ "items": [
+    { "runDate": "2026-11-03", "revision": 1, "trafficCount": 12, "playerTl": 2160, "referenceTl": 2250, "cappedTl": 2160,
+      "statusFactor": 1.0, "dailyBayt": 216.0, "complaint": "eksik_ucret", "complaintHint": "6 saat civarı kalanlar" },
+    { "runDate": "2026-11-02", "revision": 2, "trafficCount": 12, "playerTl": 2250, "referenceTl": 2250, "cappedTl": 2250,
+      "statusFactor": 1.0, "dailyBayt": 225.0, "complaint": null, "complaintHint": null } ],
+  "nextCursor": "eyJkIjoiMjAyNi0xMS0wMiIsInIiOjF9" }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/not-found", "title": "Bulunamadı", "status": 404,
+  "detail": "Böyle bir işletmen yok.", "instance": "/v1/businesses/0193a4d9-0000-7a31-b6c4-2e9f01d35c88/runs",
+  "code": "NOT_FOUND", "traceId":"00-d04051829304a5b6c7d8e9fa0b1c2d3e-cf20314253647586-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-16-post-v1-businesses-businessid-upgrades-yukseltme-satin-al">5.4.16 <code>POST /v1/businesses/{businessId}/upgrades</code>: yükseltme satın al</summary>
+<p>Yükseltme <strong>iki aşamalıdır</strong>: ödeme yeni İş Emri'ni açar (<code>upgradeTo</code>), seviye ancak L2 kodu testleri ve Savunma'yı geçince artar (§9.2). Gereken ders Mührü ödemeden önce denetlenir (B2 §7.3).</p><pre class="code" data-lang="json"><code>POST /v1/businesses/0193a4d9-7b02-7a31-b6c4-2e9f01d35c88/upgrades HTTP/1.1
+Authorization: Bearer eyJ…
+Idempotency-Key: 0193b100-aa11-7b22-9c33-4d55e6f7a8b9
+Content-Type: application/json
+
+{ "toLevel": 2 }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 201 Created
+Content-Type: application/json
+
+{ "business": { "id": "0193a4d9-7b02-7a31-b6c4-2e9f01d35c88", "level": 1, "upgradeTo": 2, "status": "acik" },
+  "price": 500, "wallet": { "BAYT": { "before": 812, "after": 312 } }, "ledgerTxId": "0193b100-ab22-7c33-8d44-5e66f7a8b9c0",
+  "xpOnCompletion": 150, "next": { "workOrder": "/v1/challenges/otopark-L2" } }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/lesson-gate", "title": "Önce dersi bitir", "status": 403,
+  "detail": "Otopark L2 için Ders 2.1 (Liman) Mührü gerekiyor.", "instance": "/v1/businesses/0193a4d9-7b02-7a31-b6c4-2e9f01d35c88/upgrades",
+  "code": "LESSON_GATE", "requires": { "lessonId": "2.1", "seal": true },
+  "traceId":"00-e151629304a5b6c7d8e9fa0b1c2d3e4f-d030425364758697-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-17-post-v1-market-purchases-satin-al">5.4.17 <code>POST /v1/market/purchases</code>: satın al</summary>
+<p><code>expectedPrice</code> istemcinin gördüğü fiyattır; Pazar rotasyonu arada değiştiyse <code>PRICE_CHANGED</code> döner ve yeniden onay istenir. Çırak Şapkası (30 B) VİZYON §4'ün 20. dakikasıdır.</p><pre class="code" data-lang="json"><code>POST /v1/market/purchases HTTP/1.1
+Authorization: Bearer eyJ…
+Idempotency-Key: 0193a0e0-5566-7a77-8b88-9c99d0e1f2a3
+Content-Type: application/json
+
+{ "sku": "cirak-sapkasi", "expectedPrice": { "currency": "BAYT", "amount": 30 } }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 201 Created
+Content-Type: application/json
+
+{ "purchaseId": "0193a0e0-5677-7b88-9c99-0da1e2f3a4b5", "item": { "sku": "cirak-sapkasi", "rarity": "siradan", "serialNo": null },
+  "wallet": { "BAYT": { "before": 40, "after": 10 } }, "ledgerTxId": "0193a0e0-5788-7c99-8da0-1eb2f3a4b5c6" }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/already-owned", "title": "Bu eşyaya zaten sahipsin", "status": 409,
+  "detail": "Çırak Şapkası envanterinde duruyor; Dolap'tan giyebilirsin.", "instance": "/v1/market/purchases",
+  "code": "ALREADY_OWNED", "traceId":"00-f262730415b6c7d8e9fa0b1c2d3e4f50-e140536475869708-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-18-put-v1-rooms-me-layout-oda-yerlesimini-kaydet">5.4.18 <code>PUT /v1/rooms/me/layout</code>: oda yerleşimini kaydet</summary>
+<p>Yerleşim <strong>tüm düzeni</strong> değiştirir ve <code>If-Match</code> ile iyimser eşzamanlılık kullanır (iki sekme/cihazda düzenleme çakışması). Stüdyo kapasitesi 25 eşyadır (KANON §2.2).</p><pre class="code" data-lang="json"><code>PUT /v1/rooms/me/layout HTTP/1.1
+Authorization: Bearer eyJ…
+If-Match: "7"
+Content-Type: application/json
+
+{ "items": [
+    { "inventoryItemId": "0193a0f0-1100-7a11-8b22-3c44d5e6f7a8", "gx": 0, "gy": 2, "rot": 1, "layer": "zemin" },
+    { "inventoryItemId": "0193a0f0-1200-7a11-8b22-3c44d5e6f7a9", "gx": 3, "gy": 3, "rot": 0, "layer": "yuzey" } ] }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+ETag: "8"
+Content-Type: application/json
+
+{ "layoutVersion": 8, "itemCount": 2, "capacity": 25 }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 412 Precondition Failed
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/version-conflict", "title": "Oda başka yerde değişmiş", "status": 412,
+  "detail": "Odanın düzeni başka bir cihazda değiştirildi. Yenileyip tekrar dene.", "instance": "/v1/rooms/me/layout",
+  "code": "VERSION_CONFLICT", "requires": { "currentLayoutVersion": 9 },
+  "traceId":"00-073849506172a8b9c0d1e2f3a4b5c6d7e8-f250647586970819-01" }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 422 Unprocessable Content
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/validation-failed", "title": "Yerleşim geçersiz", "status": 422,
+  "detail": "Stüdyoda en çok 25 eşya olur.", "instance": "/v1/rooms/me/layout", "code": "VALIDATION_FAILED",
+  "errors": [ { "pointer": "/items", "detail": "26 eşya gönderildi; kapasite 25." } ],
+  "traceId":"00-184950617283b9c0d1e2f3a4b5c6d7e8f9-0360758697081920-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-19-post-v1-world-scenes-scenekey-join-tickets-shard-ayir-ve-hub-bileti-al">5.4.19 <code>POST /v1/world/scenes/{sceneKey}/join-tickets</code>: shard ayır ve hub bileti al</summary>
+<p>Shard seçimi B1 §11.2 sırasıyla yapılır: arkadaşın shard'ı → kohort kodu → en dolu ama ≤ 32 → yeni shard. Bilet 15 sn geçerli, tek kullanımlıktır ve <code>/hubs/world</code> bağlantısında erişim belirteci yerine kullanılır (URL'de JWT taşınmaz).</p><pre class="code" data-lang="json"><code>POST /v1/world/scenes/meydan/join-tickets HTTP/1.1
+Authorization: Bearer eyJ…
+Content-Type: application/json
+
+{ "cohortCode": "KULUP42", "friendId": null, "sceneVersion": "b1-2026.11.0" }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 200 OK
+Content-Type: application/json
+
+{ "scene": "meydan", "shard": "meydan-07", "mode": "normal", "selection": "cohort",
+  "hubUrl": "wss://hub.kodkent.com/hubs/world?shard=meydan-07", "ticket": "tk_9Kx2Qm7Vw4Lc8Zt1", "ticketTtlSec": 15,
+  "capacity": { "current": 23, "max": 40 }, "sceneVersion": "b1-2026.11.0", "walkableHash": "sha256-q3yV0cEw1H8d" }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/scene-full", "title": "Oda dolu", "status": 409,
+  "detail": "Oda dolu — 20/20. Sahibine Alkış bırakabilirsin.", "instance": "/v1/world/scenes/oda-0193a000-aaaa/join-tickets",
+  "code": "SCENE_FULL", "requires": { "capacity": 20, "current": 20, "applauseAllowed": true },
+  "traceId":"00-2a5a61728394cad0e1f2a3b4c5d6e7f809-1470869708192a3b-01" }</code></pre>
+</details>
+<details class="acc"><summary id="b7-5-4-20-post-v1-privacy-erasure-requests-hesap-silme-talebi">5.4.20 <code>POST /v1/privacy/erasure-requests</code>: hesap silme talebi</summary>
+<p>Silme <strong>OTP ile yeniden doğrulama</strong> ister; 7 gün bekleme süresi içinde vazgeçilebilir; yasal süre 30 gündür (KVKK başvuru süresi). 15–17 yaşta talep veli kanalından da başlatılabilir (§11.6).</p><pre class="code" data-lang="json"><code>POST /v1/privacy/erasure-requests HTTP/1.1
+Authorization: Bearer eyJ…
+Idempotency-Key: 0193c000-0a0b-7c0d-8e0f-1a2b3c4d5e6f
+Content-Type: application/json
+
+{ "otpChallengeId": "0193c000-0001-7aaa-8bbb-9ccc0ddd1eee", "otpCode": "731045", "confirmText": "HESABIMI SİL" }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{ "requestId": "0193c000-0b0c-7d0e-8f10-2b3c4d5e6f70", "status": "pending_grace",
+  "graceUntil": "2026-11-09T21:14:03Z", "dueAt": "2026-12-02T21:14:03Z",
+  "cancelUrl": "/v1/privacy/erasure-requests/0193c000-0b0c-7d0e-8f10-2b3c4d5e6f70",
+  "willErase": ["telefon", "takma ad ve profil", "cevaplar ve Kurul kayıtları", "kod ve Vitrin", "sohbet mesajları", "oda ve envanter görünümü"],
+  "willRetain": [
+    { "what": "Çip satın alma ve fatura kayıtları", "why": "Vergi mevzuatı", "until": "2036-11-02" },
+    { "what": "Defter satırları (kimliksiz)", "why": "Ekonomi bütünlüğü ve denetim", "until": "2028-11-02" } ] }</code></pre><pre class="code" data-lang="json"><code>HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+
+{ "type": "https://api.kodkent.com/problems/reauth-required", "title": "Doğrulama gerekli", "status": 401,
+  "detail": "Hesabı silmek için telefonuna gelen kodu girmelisin.", "instance": "/v1/privacy/erasure-requests",
+  "code": "REAUTH_REQUIRED", "requires": { "otpPurpose": "erasure_confirm" },
+  "traceId":"00-3b6b728394a5dbe1f2a3b4c5d6e7f80910-2580970819203a4b-01" }</code></pre>
+</details>
+</section>

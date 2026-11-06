@@ -1,0 +1,460 @@
+<title>KodKent Ortak Parça Testi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Yerleşim: solda yapışkan içindekiler (≥1100px), ortada 72ch okuma sütunu */
+:root{
+  --bg:#F4F6FA; --surface:#FFFFFF; --surface-2:#E9EEF6; --surface-3:#DDE4F0;
+  --fg:#18213A; --fg-2:#3A4766; --muted:#5B6786; --line:#D5DCE9; --line-2:#C3CCDD;
+  --accent:#0FA3A8; --accent-ink:#0A7B80; --accent-soft:#D8F3F3;
+  --cobalt:#2448B5; --cobalt-soft:#DEE5FA;
+  --amber:#D98E00; --amber-ink:#9A6300; --amber-soft:#FDF0D5;
+  --coral:#E8553E; --coral-ink:#B93E2A; --coral-soft:#FBE1DC;
+  --mint:#1E9E5F; --mint-ink:#157746; --mint-soft:#DCF5E8;
+  --violet:#6D4AFF; --violet-ink:#4E31CC; --violet-soft:#E7E1FF;
+  --code-bg:#0F1730; --code-fg:#E6ECFF; --code-line:#1E2A4A;
+  --shadow:0 1px 2px rgba(24,33,58,.06),0 8px 24px -12px rgba(24,33,58,.18);
+  --s1:#0892A8; --s2:#C98500; --s3:#2448B5; --s4:#E8553E; --s5:#6D4AFF; --s6:#1E9E5F;
+  --good:#0CA30C; --warn:#FAB219; --serious:#EC835A; --critical:#D03B3B;
+  --grid:#E3E8F1; --axis:#B9C3D6;
+  --font-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --font-body:"Figtree","Segoe UI",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",Consolas,"Courier New",monospace;
+  --radius:10px; --radius-lg:16px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0D1326; --surface:#151D36; --surface-2:#1D2746; --surface-3:#26325A;
+  --fg:#E8EDF8; --fg-2:#C5CEE4; --muted:#9AA7C7; --line:#2A3558; --line-2:#36446E;
+  --accent:#22C9CE; --accent-ink:#5FE0E3; --accent-soft:#10353E;
+  --cobalt:#7D9BFF; --cobalt-soft:#1C2A5A;
+  --amber:#FFBE3D; --amber-ink:#FFD27A; --amber-soft:#3B2F12;
+  --coral:#FF7A66; --coral-ink:#FFA394; --coral-soft:#3F1F1A;
+  --mint:#45D98D; --mint-ink:#7FE8B3; --mint-soft:#123A2A;
+  --violet:#9B86FF; --violet-ink:#BDB0FF; --violet-soft:#2A2452;
+  --code-bg:#0A1024; --code-fg:#E6ECFF; --code-line:#1A2340;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
+  --s1:#16A9AE; --s2:#C98500; --s3:#3F6FE0; --s4:#E8553E; --s5:#8A6CFF; --s6:#24A868;
+  --grid:#1F2A4A; --axis:#3A4870;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0D1326; --surface:#151D36; --surface-2:#1D2746; --surface-3:#26325A;
+  --fg:#E8EDF8; --fg-2:#C5CEE4; --muted:#9AA7C7; --line:#2A3558; --line-2:#36446E;
+  --accent:#22C9CE; --accent-ink:#5FE0E3; --accent-soft:#10353E;
+  --cobalt:#7D9BFF; --cobalt-soft:#1C2A5A;
+  --amber:#FFBE3D; --amber-ink:#FFD27A; --amber-soft:#3B2F12;
+  --coral:#FF7A66; --coral-ink:#FFA394; --coral-soft:#3F1F1A;
+  --mint:#45D98D; --mint-ink:#7FE8B3; --mint-soft:#123A2A;
+  --violet:#9B86FF; --violet-ink:#BDB0FF; --violet-soft:#2A2452;
+  --code-bg:#0A1024; --code-fg:#E6ECFF; --code-line:#1A2340;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
+  --s1:#16A9AE; --s2:#C98500; --s3:#3F6FE0; --s4:#E8553E; --s5:#8A6CFF; --s6:#24A868;
+  --grid:#1F2A4A; --axis:#3A4870;
+  color-scheme:dark;
+}
+html,body{height:auto}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.6;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+/* KodKent ortak CSS — token bloğunun (01-tasarim-sistemi.md §2) HEMEN ALTINA aynen kopyalanır. Bileşenler yalnızca tokenlarla boyanır. */
+*,*::before,*::after{box-sizing:border-box}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+h1,h2,h3,h4{font-family:var(--font-display);line-height:1.15;text-wrap:balance;margin:0;color:var(--fg)}
+h1{font-size:clamp(30px,4.5vw,46px);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(22px,3vw,30px);font-weight:800;letter-spacing:-.015em}
+h3{font-size:clamp(17px,2vw,21px);font-weight:700}
+h4{font-size:16px;font-weight:700}
+p,li{max-width:72ch}
+a{color:var(--accent-ink);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,button:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+img,svg{max-width:100%;height:auto}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink)}
+.muted{color:var(--muted)}
+.num,td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* Üst şerit */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--bg);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;min-height:56px;flex-wrap:wrap;padding-block:8px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--fg);text-decoration:none}
+.brand small{font-family:var(--font-body);font-weight:500;color:var(--muted);font-size:13px}
+nav.family{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
+nav.family a{font-size:13px;font-weight:600;color:var(--muted);padding:6px 10px;border-radius:999px;text-decoration:none}
+nav.family a:hover{background:var(--surface-2);color:var(--fg)}
+nav.family a.current{background:var(--accent-soft);color:var(--accent-ink)}
+
+/* Yerleşim: solda içindekiler */
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:32px;max-width:1240px;margin:0 auto;padding-block:24px 64px}
+@media (min-width:1100px){.layout{grid-template-columns:260px minmax(0,1fr)}}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 72px);align-self:start;max-height:calc(100dvh - 100px);overflow:auto;font-size:13.5px;display:none}
+@media (min-width:1100px){.toc{display:block}}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.toc li a{display:block;padding:5px 12px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;margin-left:-1px}
+.toc li.h3 a{padding-left:24px;font-size:12.5px}
+.toc li a:hover{color:var(--fg)}
+.toc li a.on{color:var(--accent-ink);border-left-color:var(--accent);font-weight:600}
+.toc-mobile{display:block;margin-block:12px}
+@media (min-width:1100px){.toc-mobile{display:none}}
+main{min-width:0}
+section{padding-block:28px;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+.lead{font-size:18px;color:var(--fg-2);max-width:68ch}
+
+/* Kartlar, ızgaralar, rozetler */
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;min-width:0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px 18px}
+.stat .v{font-family:var(--font-display);font-size:34px;font-weight:800;line-height:1;color:var(--cobalt);font-variant-numeric:tabular-nums}
+.stat .l{font-size:13px;color:var(--muted);margin-top:6px}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 var(--radius) var(--radius) 0}
+.callout.amber{border-color:var(--amber);background:var(--amber-soft)}
+.callout.coral{border-color:var(--coral);background:var(--coral-soft)}
+.callout.mint{border-color:var(--mint);background:var(--mint-soft)}
+.callout.violet{border-color:var(--violet);background:var(--violet-soft)}
+blockquote.musteri{margin:0;padding:16px 20px;background:var(--amber-soft);border:1px dashed var(--amber);border-radius:var(--radius);font-size:17px;font-style:italic;color:var(--fg)}
+blockquote.musteri cite{display:block;font-style:normal;font-size:13px;color:var(--muted);margin-top:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--surface-2);color:var(--fg-2);white-space:nowrap}
+.badge.accent{background:var(--accent-soft);color:var(--accent-ink)}
+.badge.amber{background:var(--amber-soft);color:var(--amber-ink)}
+.badge.coral{background:var(--coral-soft);color:var(--coral-ink)}
+.badge.mint{background:var(--mint-soft);color:var(--mint-ink)}
+.badge.violet{background:var(--violet-soft);color:var(--violet-ink)}
+.badge.cobalt{background:var(--cobalt-soft);color:var(--cobalt)}
+.sev{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.sev.kritik{background:var(--critical)}.sev.yuksek{background:var(--serious)}.sev.orta{background:var(--warn)}.sev.dusuk{background:var(--good)}
+
+/* Tablolar */
+.tablewrap{overflow-x:auto;max-width:100%;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);position:sticky;top:0}
+tbody tr:nth-child(even){background:color-mix(in srgb,var(--surface-2) 45%,var(--surface))}
+tbody tr:last-child td{border-bottom:0}
+td code,p code,li code{font-family:var(--font-mono);font-size:.9em;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+
+/* Kod blokları (her zaman koyu) */
+pre.code{position:relative;margin:0;background:var(--code-bg);color:var(--code-fg);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;font-family:var(--font-mono);font-size:13px;line-height:1.55;tab-size:4}
+pre.code code{font-family:inherit}
+pre.code .k{color:#BDB0FF}pre.code .s{color:#7FE8B3}pre.code .n{color:#FFD27A}pre.code .c{color:#7F8DB0;font-style:italic}pre.code .t{color:#5FE0E3}
+pre.code .copy{position:absolute;top:8px;right:8px;font:600 11px var(--font-body);color:#E6ECFF;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:3px 8px;cursor:pointer}
+pre.code .copy:hover{background:rgba(255,255,255,.18)}
+.terminal{background:var(--code-bg);color:#C9F7D2;font-family:var(--font-mono);font-size:13px;padding:14px 16px;border-radius:var(--radius);overflow-x:auto;white-space:pre}
+
+/* Grafikler */
+.kk-chart{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:12px 12px 6px}
+.kk-chart svg{display:block;width:100%;height:auto}
+.kk-grid{stroke:var(--grid);stroke-width:1}
+.kk-axis{stroke:var(--axis);stroke-width:1}
+.kk-ax{font:11.5px var(--font-body);fill:var(--muted)}
+.kk-lab{font:600 11.5px var(--font-body);fill:var(--fg-2)}
+.kk-cross{stroke:var(--axis);stroke-width:1;stroke-dasharray:3 3}
+.kk-mark{stroke:var(--coral);stroke-width:1;stroke-dasharray:4 3}
+.kk-bar{transition:opacity .15s}.kk-bar.on{opacity:.8}
+.kk-tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12.5px;line-height:1.4;padding:6px 9px;border-radius:6px;box-shadow:var(--shadow);max-width:240px;z-index:3}
+.kk-tip .kk-dot,.kk-leg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.kk-legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:8px 4px 2px;font-size:12.5px;color:var(--fg-2)}
+.kk-leg i{width:12px;height:12px;border-radius:3px}
+.kk-table{margin-top:4px;font-size:13px}
+.kk-table summary{cursor:pointer;color:var(--accent-ink);font-weight:600;padding:6px 4px}
+.kk-table .tablewrap{margin-top:6px;max-height:280px;overflow:auto}
+
+/* Figürler / diyagramlar */
+figure{margin:0;display:flex;flex-direction:column;gap:8px}
+figure .diag{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:12px}
+figure svg text{font-family:var(--font-body)}
+figcaption{font-size:13.5px;color:var(--muted);max-width:72ch}
+
+/* Zaman çizelgesi, adım şeritleri */
+.timeline{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.timeline li{display:grid;grid-template-columns:72px 1fr;gap:16px;padding:10px 0;border-left:2px solid var(--line);margin-left:36px;position:relative}
+.timeline li::before{content:"";position:absolute;left:-7px;top:16px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.timeline .t{font-family:var(--font-mono);font-size:12.5px;color:var(--muted);text-align:right;padding-right:4px;margin-left:-72px;width:60px}
+.steps{display:flex;gap:10px;overflow-x:auto;padding-block:4px}
+.steps .step{flex:0 0 200px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-width:0}
+.steps .step b{display:block;font-family:var(--font-display);color:var(--cobalt)}
+
+/* Açılır bölümler, sohbet balonları */
+details.acc{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:0 16px;margin-block:8px}
+details.acc summary{cursor:pointer;font-weight:700;padding:12px 0;list-style:none;display:flex;align-items:center;gap:10px}
+details.acc summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:0 0 auto}
+details.acc[open] summary::before{transform:rotate(45deg)}
+details.acc > :not(summary){margin-bottom:14px}
+.chat{display:flex;flex-direction:column;gap:10px;max-width:640px}
+.bubble{padding:10px 14px;border-radius:14px;max-width:85%;font-size:15px;line-height:1.5}
+.bubble.usta{align-self:flex-start;background:var(--accent-soft);color:var(--fg);border-bottom-left-radius:4px}
+.bubble.oyuncu{align-self:flex-end;background:var(--surface-2);color:var(--fg);border-bottom-right-radius:4px}
+.bubble .who{display:block;font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+
+/* Alt bilgi */
+footer.site{border-top:1px solid var(--line);padding-block:24px 40px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;max-width:1240px;margin:0 auto}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media (max-width:640px){.stat .v{font-size:28px}th,td{padding:7px 9px}pre.code{font-size:12px}}
+
+</style>
+<header class="topbar">
+  <a class="brand" href="#"><svg class="logomark" width="28" height="28" viewBox="0 0 32 32" role="img" aria-label="KodKent logosu"><polygon points="16,2 29,9 16,16 3,9" fill="var(--accent)"/><polygon points="3,9 16,16 16,30 3,23" fill="var(--cobalt)"/><polygon points="29,9 16,16 16,30 29,23" fill="var(--accent-ink)"/><path d="M9.5 12.2 L9.5 24.2 M9.5 18 L14 13.2 M9.5 18 L14 23.4" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg><span>KodKent</span> <small>Ortak parça testi</small></a>
+  <nav class="family"><a href="#" data-doc="tasarim" class="current">Tasarım</a><a href="#" data-doc="teknik">Teknik</a><a href="#" data-doc="mufredat">Müfredat</a><a href="#" data-doc="ekranlar">Ekranlar</a><a href="#" data-doc="prototip">Prototip</a></nav>
+</header>
+<div class="layout">
+  <nav class="toc" id="toc" aria-label="İçindekiler"></nav>
+  <main>
+    <section id="giris">
+      <p class="eyebrow">Test</p>
+      <h1>Ortak grafik ve kod parçaları</h1>
+      <p class="lead">Bu sayfa yalnızca shared.js ve shared.css doğrulaması içindir. Üç grafik tipi, kod renklendirme ve içindekiler burada denenir.</p>
+      <div class="grid">
+        <div class="stat"><div class="v">96</div><div class="l">ders</div></div>
+        <div class="stat"><div class="v">18</div><div class="l">işletme</div></div>
+        <div class="stat"><div class="v">8</div><div class="l">semt</div></div>
+        <div class="stat"><div class="v">3 ay</div><div class="l">MVP</div></div>
+      </div>
+    </section>
+    <section id="xp">
+      <h2>XP eğrisi</h2>
+      <p>Seviye başına gereken XP, 1'den 60'a.</p>
+      <div id="c-xp"></div>
+    </section>
+    <section id="sim">
+      <h2>30 günlük simülasyon</h2>
+      <div id="c-sim"></div>
+    </section>
+    <section id="otopark">
+      <h2>Otopark ücret kademesi</h2>
+      <div id="c-step"></div>
+      <blockquote class="musteri">"2 saatten az kalanlar: saati 100 TL. 2–6 saat arası: her saat 40 TL. 6–24 saat arası kalanlar: günlük 250 TL."<cite>Hasan Abi, Otopark sahibi (müşteri isteği)</cite></blockquote>
+      <h3 id="kod">Referans çözüm</h3>
+      <pre class="code" data-lang="cs"><code>public static class Otopark
+{
+    // dakika: toplam kalış süresi
+    public static int UcretHesapla(int dakika)
+    {
+        if (dakika &lt; 0) throw new ArgumentOutOfRangeException(nameof(dakika));
+        if (dakika == 0) return 0;
+        int saat = (int)Math.Ceiling(dakika / 60.0);
+        if (saat &lt; 2) return saat * 100;
+        if (saat &lt;= 6) return saat * 40;
+        int gun = (int)Math.Ceiling(dakika / 1440.0);
+        return gun * 250; // "6'yı geçen güne girer"
+    }
+}</code></pre>
+      <pre class="code" data-lang="sql"><code>CREATE TABLE player_business (
+  id BIGSERIAL PRIMARY KEY,
+  player_id BIGINT NOT NULL REFERENCES player(id),
+  business_id INT NOT NULL,
+  tier SMALLINT NOT NULL DEFAULT 1, -- 1..4
+  activated_at TIMESTAMPTZ
+);</code></pre>
+      <pre class="code" data-lang="json"><code>{ "id": "otopark-t1", "tier": 1, "puan": 85, "aktif": true, "etiketler": ["if", "math"] }</code></pre>
+      <div class="tablewrap"><table><thead><tr><th>Dakika</th><th class="num">TL</th><th>Not</th></tr></thead><tbody><tr><td>30</td><td class="num">100</td><td>başlayan 1. saat</td></tr><tr><td>120</td><td class="num">80</td><td>tam 2 saat</td></tr><tr><td>361</td><td class="num">250</td><td>günlük</td></tr></tbody></table></div>
+    </section>
+    <section id="sohbet">
+      <h2>Usta sohbeti</h2>
+      <div class="chat">
+        <div class="bubble usta"><span class="who">Usta Defne · Çarşı</span>`int yas = 17;` yazdın. `yas` ne, `17` ne, `int` ne? Kendi cümlelerinle anlat.</div>
+        <div class="bubble oyuncu"><span class="who">Sen</span>yas bir kutu gibi, 17 içindeki değer, int de kutunun tipi: tam sayı.</div>
+        <div class="bubble usta"><span class="who">Usta Defne</span>82/100. "Kutu" benzetmen güzel; türün neden önemli olduğunu ekle.</div>
+      </div>
+    </section>
+  </main>
+</div>
+<footer class="site"><span>KodKent tasarım paketi · Sürüm 1.0 · 2 Kasım 2026</span></footer>
+<script>
+/* KodKent ortak JS parçaları — her belge sayfasının <script> bloğunun BAŞINA aynen kopyalanır.
+   İçerik: HTML kaçış, C#/SQL/JSON renklendirme, çubuk/çizgi/adım grafikleri (tooltip + tablo görünümü),
+   içindekiler + scrollspy, kod kopyalama düğmeleri, Türkçe sayı biçimi. Harici kütüphane yok. */
+'use strict';
+const KK = (() => {
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = (n, d = 0) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+  // ---------- Renklendirme ----------
+  const CS_KW = new Set(('abstract as base bool break byte case catch char checked class const continue decimal default delegate do double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using var virtual void volatile while async await record init required get set value yield when with nameof').split(' '));
+  const SQL_KW = new Set(('select from where insert into values update set delete create table index unique primary key references foreign not null default constraint check alter add drop if exists and or in is between like join left right inner outer on group by order asc desc limit offset having union all distinct as case when then else end begin commit rollback transaction returning serial bigserial integer int bigint smallint text varchar char boolean timestamp timestamptz date numeric decimal jsonb uuid array now true false with recursive partition over row_number count sum avg min max coalesce cast type enum extension').split(' '));
+  function tokenize(code, lang) {
+    code = String(code);
+    let out = '', i = 0;
+    const push = (cls, txt) => { out += cls ? `<span class="${cls}">${esc(txt)}</span>` : esc(txt); };
+    while (i < code.length) {
+      const ch = code[i], nx = code[i + 1];
+      if (lang !== 'json' && ch === '/' && nx === '/' || (lang === 'sql' && ch === '-' && nx === '-')) { let j = code.indexOf('\n', i); if (j < 0) j = code.length; push('c', code.slice(i, j)); i = j; continue; }
+      if (ch === '/' && nx === '*') { let j = code.indexOf('*/', i + 2); j = j < 0 ? code.length : j + 2; push('c', code.slice(i, j)); i = j; continue; }
+      if (ch === '"' || ch === "'" || (lang === 'cs' && (ch === '$' || ch === '@') && (nx === '"' || (code[i + 2] === '"' && (nx === '$' || nx === '@'))))) {
+        let j = i; while (j < code.length && code[j] !== '"' && code[j] !== "'") j++;
+        const q = code[j]; let k = j + 1;
+        while (k < code.length) { if (code[k] === '\\' && q === "'") { k += 2; continue; } if (code[k] === '\\' && !code.slice(i, j).includes('@')) { k += 2; continue; } if (code[k] === q) { if (code.slice(i, j).includes('@') && code[k + 1] === q) { k += 2; continue; } k++; break; } k++; }
+        push('s', code.slice(i, k)); i = k; continue;
+      }
+      if (/[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(nx || ''))) { let j = i + 1; while (j < code.length && /[0-9A-Za-z_.]/.test(code[j])) j++; push('n', code.slice(i, j)); i = j; continue; }
+      if (/[A-Za-z_@À-ɏİıŞşĞğÜüÖöÇç]/.test(ch)) {
+        let j = i + 1; while (j < code.length && /[A-Za-z0-9_À-ɏİıŞşĞğÜüÖöÇç]/.test(code[j])) j++;
+        const w = code.slice(i, j), lw = w.toLowerCase();
+        if (lang === 'json') { const after = code.slice(j).match(/^\s*:/); push(after ? 't' : (/^(true|false|null)$/.test(lw) ? 'k' : ''), w); }
+        else if (lang === 'sql') push(SQL_KW.has(lw) ? 'k' : '', w);
+        else push(CS_KW.has(w) ? 'k' : (/^[A-Z][A-Za-z0-9]*$/.test(w) ? 't' : ''), w);
+        i = j; continue;
+      }
+      push('', ch); i++;
+    }
+    return out;
+  }
+  // JSON anahtarları için ayrı yol: "anahtar": → .t
+  function hlJson(code) {
+    return esc(String(code))
+      .replace(/(&quot;[^&]*?&quot;)(\s*:)/g, '<span class="t">$1</span>$2')
+      .replace(/(?<!"t">)(&quot;(?:[^&]|&(?!quot;))*?&quot;)(?!<\/span>)/g, '<span class="s">$1</span>')
+      .replace(/(:\s*|\[\s*|,\s*)(-?\d+(?:\.\d+)?)(?=\s*[,\]}\n])/g, '$1<span class="n">$2</span>')
+      .replace(/\b(true|false|null)\b/g, '<span class="k">$1</span>');
+  }
+  const hlCs = code => tokenize(code, 'cs');
+  const hlSql = code => tokenize(code, 'sql');
+  /** Sayfadaki tüm <pre class="code" data-lang="cs|sql|json|txt"><code>…</code></pre> bloklarını renklendirir ve kopyala düğmesi ekler. */
+  function wireCode(root = document) {
+    root.querySelectorAll('pre.code').forEach(pre => {
+      const codeEl = pre.querySelector('code') || pre; const lang = pre.dataset.lang || 'cs'; const raw = codeEl.textContent;
+      if (lang === 'cs') codeEl.innerHTML = hlCs(raw); else if (lang === 'sql') codeEl.innerHTML = hlSql(raw); else if (lang === 'json') codeEl.innerHTML = hlJson(raw);
+      if (!pre.querySelector('.copy')) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'copy'; b.textContent = 'Kopyala';
+        b.addEventListener('click', () => { const done = () => { b.textContent = 'Kopyalandı'; setTimeout(() => (b.textContent = 'Kopyala'), 1500); };
+          try { navigator.clipboard.writeText(raw).then(done, () => sel()); } catch (e) { sel(); }
+          function sel() { const r = document.createRange(); r.selectNodeContents(codeEl); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Seçildi'; setTimeout(() => (b.textContent = 'Kopyala'), 1500); } });
+        pre.appendChild(b);
+      }
+    });
+  }
+
+  // ---------- Grafik altyapısı ----------
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  function niceMax(v) { if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p; const n = m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10; return n * p; }
+  function tooltip(container) {
+    let t = container.querySelector('.kk-tip'); if (!t) { t = document.createElement('div'); t.className = 'kk-tip'; t.hidden = true; container.appendChild(t); }
+    return { show(html, x, y) { t.innerHTML = html; t.hidden = false; const cw = container.clientWidth; t.style.left = Math.min(x + 12, cw - t.offsetWidth - 8) + 'px'; t.style.top = Math.max(4, y - t.offsetHeight - 12) + 'px'; }, hide() { t.hidden = true; } };
+  }
+  function tableView(container, headers, rows) {
+    const d = document.createElement('details'); d.className = 'kk-table';
+    d.innerHTML = `<summary>Tablo görünümü</summary><div class="tablewrap"><table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c, i) => `<td class="${i ? 'num' : ''}">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    container.appendChild(d);
+  }
+  const SERIES = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)', 'var(--s6)'];
+  function legend(container, names) {
+    const l = document.createElement('div'); l.className = 'kk-legend';
+    l.innerHTML = names.map((n, i) => `<span class="kk-leg"><i style="background:${SERIES[i % 6]}"></i>${esc(n)}</span>`).join('');
+    container.appendChild(l);
+  }
+
+  /** Çubuk grafik. opts: {labels:[], series:[{name, values:[]}], yLabel, format:(v)=>str, height, title} — tek seri: lejant yok; ≤4 seri: doğrudan etiket yok, lejant var. */
+  function barChart(container, opts) {
+    const { labels, series, format = v => fmt(v), height = 260, yLabel = '' } = opts;
+    container.classList.add('kk-chart'); container.innerHTML = '';
+    const W = 720, H = height, padL = 56, padR = 16, padT = 16, padB = 44;
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': opts.title || 'Çubuk grafik' }, container);
+    const max = niceMax(Math.max(...series.flatMap(s => s.values)));
+    const innerW = W - padL - padR, innerH = H - padT - padB, n = labels.length, sCount = series.length;
+    const groupW = innerW / n, barW = Math.max(4, Math.min(40, (groupW * 0.7) / sCount)), gap = 2;
+    const y = v => padT + innerH - (v / max) * innerH;
+    for (let t = 0; t <= 4; t++) { const v = (max / 4) * t; el('line', { x1: padL, x2: W - padR, y1: y(v), y2: y(v), class: 'kk-grid' }, svg); const tx = el('text', { x: padL - 8, y: y(v) + 4, class: 'kk-ax', 'text-anchor': 'end' }, svg); tx.textContent = format(v); }
+    el('line', { x1: padL, x2: W - padR, y1: y(0), y2: y(0), class: 'kk-axis' }, svg);
+    if (yLabel) { const t = el('text', { x: padL, y: 10, class: 'kk-ax' }, svg); t.textContent = yLabel; }
+    const tip = tooltip(container);
+    labels.forEach((lab, i) => {
+      const gx = padL + i * groupW + (groupW - (barW + gap) * sCount) / 2;
+      series.forEach((s, k) => {
+        const v = s.values[i] || 0, bx = gx + k * (barW + gap), by = y(v), bh = y(0) - by;
+        const r = el('rect', { x: bx, y: by, width: barW, height: Math.max(0, bh), rx: 4, fill: SERIES[k % 6], class: 'kk-bar' }, svg);
+        if (bh > 4) el('rect', { x: bx, y: y(0) - 4, width: barW, height: 4, fill: SERIES[k % 6] }, svg);
+        const hit = el('rect', { x: bx - gap, y: padT, width: barW + gap * 2, height: innerH, fill: 'transparent' }, svg);
+        const show = e => { const b = container.getBoundingClientRect(); tip.show(`<b>${esc(lab)}</b>${sCount > 1 ? ' · ' + esc(s.name) : ''}<br>${esc(format(v))}`, e.clientX - b.left, e.clientY - b.top); r.classList.add('on'); };
+        hit.addEventListener('mousemove', show); hit.addEventListener('mouseleave', () => { tip.hide(); r.classList.remove('on'); });
+      });
+      const t = el('text', { x: padL + i * groupW + groupW / 2, y: H - padB + 18, class: 'kk-ax', 'text-anchor': 'middle' }, svg); t.textContent = lab;
+    });
+    if (sCount > 1) legend(container, series.map(s => s.name));
+    tableView(container, ['', ...series.map(s => s.name)], labels.map((l, i) => [l, ...series.map(s => format(s.values[i]))]));
+  }
+
+  /** Çizgi grafik. opts: {x:[], series:[{name, values:[]}], format, height, yLabel, title, area:boolean} — crosshair + tooltip. */
+  function lineChart(container, opts) {
+    const { x, series, format = v => fmt(v), height = 280, yLabel = '', area = false } = opts;
+    container.classList.add('kk-chart'); container.innerHTML = '';
+    const W = 720, H = height, padL = 60, padR = 20, padT = 18, padB = 40;
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': opts.title || 'Çizgi grafik' }, container);
+    const max = niceMax(Math.max(...series.flatMap(s => s.values))), n = x.length;
+    const innerW = W - padL - padR, innerH = H - padT - padB;
+    const X = i => padL + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW), Y = v => padT + innerH - (v / max) * innerH;
+    for (let t = 0; t <= 4; t++) { const v = (max / 4) * t; el('line', { x1: padL, x2: W - padR, y1: Y(v), y2: Y(v), class: 'kk-grid' }, svg); const tx = el('text', { x: padL - 8, y: Y(v) + 4, class: 'kk-ax', 'text-anchor': 'end' }, svg); tx.textContent = format(v); }
+    el('line', { x1: padL, x2: W - padR, y1: Y(0), y2: Y(0), class: 'kk-axis' }, svg);
+    if (yLabel) { const t = el('text', { x: padL, y: 10, class: 'kk-ax' }, svg); t.textContent = yLabel; }
+    const step = Math.max(1, Math.ceil(n / 8));
+    x.forEach((lab, i) => { if (i % step === 0 || i === n - 1) { const t = el('text', { x: X(i), y: H - padB + 18, class: 'kk-ax', 'text-anchor': 'middle' }, svg); t.textContent = lab; } });
+    series.forEach((s, k) => {
+      const d = s.values.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+      if (area) el('path', { d: `${d} L${X(n - 1)},${Y(0)} L${X(0)},${Y(0)} Z`, fill: SERIES[k % 6], opacity: 0.12 }, svg);
+      el('path', { d, fill: 'none', stroke: SERIES[k % 6], 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+      const last = s.values.length - 1; el('circle', { cx: X(last), cy: Y(s.values[last]), r: 4.5, fill: SERIES[k % 6], stroke: 'var(--surface)', 'stroke-width': 2 }, svg);
+      if (series.length > 1 && series.length <= 4) { const t = el('text', { x: X(last) + 8, y: Y(s.values[last]) + 4, class: 'kk-lab' }, svg); t.textContent = s.name; }
+    });
+    const cross = el('line', { x1: 0, x2: 0, y1: padT, y2: padT + innerH, class: 'kk-cross' }, svg); cross.setAttribute('visibility', 'hidden');
+    const dots = series.map((s, k) => { const c = el('circle', { r: 5, fill: SERIES[k % 6], stroke: 'var(--surface)', 'stroke-width': 2 }, svg); c.setAttribute('visibility', 'hidden'); return c; });
+    const tip = tooltip(container);
+    const hit = el('rect', { x: padL, y: padT, width: innerW, height: innerH, fill: 'transparent' }, svg);
+    hit.addEventListener('mousemove', e => {
+      const b = svg.getBoundingClientRect(); const px = (e.clientX - b.left) / b.width * W; let i = Math.round(((px - padL) / innerW) * (n - 1)); i = Math.max(0, Math.min(n - 1, i));
+      cross.setAttribute('x1', X(i)); cross.setAttribute('x2', X(i)); cross.setAttribute('visibility', 'visible');
+      dots.forEach((c, k) => { c.setAttribute('cx', X(i)); c.setAttribute('cy', Y(series[k].values[i])); c.setAttribute('visibility', 'visible'); });
+      const cb = container.getBoundingClientRect();
+      tip.show(`<b>${esc(x[i])}</b>` + series.map((s, k) => `<br><i class="kk-dot" style="background:${SERIES[k % 6]}"></i>${esc(s.name)}: ${esc(format(s.values[i]))}`).join(''), e.clientX - cb.left, e.clientY - cb.top);
+    });
+    hit.addEventListener('mouseleave', () => { cross.setAttribute('visibility', 'hidden'); dots.forEach(c => c.setAttribute('visibility', 'hidden')); tip.hide(); });
+    if (series.length > 1) legend(container, series.map(s => s.name));
+    tableView(container, ['', ...series.map(s => s.name)], x.map((l, i) => [l, ...series.map(s => format(s.values[i]))]));
+  }
+
+  /** Adım (basamak) grafiği: sıçramalı fonksiyonlar için (otopark ücreti vs dakika). opts:{points:[[x,y],…] artan x, xLabel, yLabel, format, xFormat, height, title, marks:[{x, label}]} */
+  function stepChart(container, opts) {
+    const { points, format = v => fmt(v), xFormat = v => fmt(v), height = 280, yLabel = '', xLabel = '', marks = [] } = opts;
+    container.classList.add('kk-chart'); container.innerHTML = '';
+    const W = 720, H = height, padL = 60, padR = 20, padT = 18, padB = 44;
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': opts.title || 'Adım grafiği' }, container);
+    const xs = points.map(p => p[0]), ys = points.map(p => p[1]); const xmax = Math.max(...xs), ymax = niceMax(Math.max(...ys));
+    const innerW = W - padL - padR, innerH = H - padT - padB; const X = v => padL + (v / xmax) * innerW, Y = v => padT + innerH - (v / ymax) * innerH;
+    for (let t = 0; t <= 4; t++) { const v = (ymax / 4) * t; el('line', { x1: padL, x2: W - padR, y1: Y(v), y2: Y(v), class: 'kk-grid' }, svg); const tx = el('text', { x: padL - 8, y: Y(v) + 4, class: 'kk-ax', 'text-anchor': 'end' }, svg); tx.textContent = format(v); }
+    el('line', { x1: padL, x2: W - padR, y1: Y(0), y2: Y(0), class: 'kk-axis' }, svg);
+    for (let t = 0; t <= 6; t++) { const v = (xmax / 6) * t; const tx = el('text', { x: X(v), y: H - padB + 18, class: 'kk-ax', 'text-anchor': 'middle' }, svg); tx.textContent = xFormat(Math.round(v)); }
+    if (yLabel) { const t = el('text', { x: padL, y: 10, class: 'kk-ax' }, svg); t.textContent = yLabel; }
+    if (xLabel) { const t = el('text', { x: W - padR, y: H - 6, class: 'kk-ax', 'text-anchor': 'end' }, svg); t.textContent = xLabel; }
+    let d = ''; points.forEach((p, i) => { if (i === 0) d += `M${X(p[0])},${Y(p[1])}`; else { d += ` H${X(p[0])} V${Y(p[1])}`; } });
+    el('path', { d, fill: 'none', stroke: 'var(--s1)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }, svg);
+    marks.forEach(m => { const px = X(m.x); el('line', { x1: px, x2: px, y1: padT, y2: Y(0), class: 'kk-mark' }, svg); const t = el('text', { x: px + 4, y: padT + 12, class: 'kk-lab' }, svg); t.textContent = m.label; });
+    const tip = tooltip(container); const hit = el('rect', { x: padL, y: padT, width: innerW, height: innerH, fill: 'transparent' }, svg);
+    hit.addEventListener('mousemove', e => { const b = svg.getBoundingClientRect(); const vx = ((e.clientX - b.left) / b.width * W - padL) / innerW * xmax; let yv = points[0][1]; for (const p of points) { if (p[0] <= vx) yv = p[1]; } const cb = container.getBoundingClientRect(); tip.show(`${esc(xFormat(Math.round(vx)))} → <b>${esc(format(yv))}</b>`, e.clientX - cb.left, e.clientY - cb.top); });
+    hit.addEventListener('mouseleave', () => tip.hide());
+    tableView(container, [xLabel || 'x', yLabel || 'y'], points.map(p => [xFormat(p[0]), format(p[1])]));
+  }
+
+  // ---------- İçindekiler + scrollspy ----------
+  function buildToc(nav, scope = document) {
+    const hs = [...scope.querySelectorAll('main h2[id], main h3[id]')];
+    nav.innerHTML = '<ol>' + hs.map(h => `<li class="${h.tagName.toLowerCase()}"><a href="#${h.id}">${esc(h.textContent)}</a></li>`).join('') + '</ol>';
+    if ('IntersectionObserver' in window) {
+      const links = new Map(hs.map(h => [h.id, nav.querySelector(`a[href="#${h.id}"]`)]));
+      const io = new IntersectionObserver(ents => { ents.forEach(en => { if (en.isIntersecting) { links.forEach(a => a.classList.remove('on')); const a = links.get(en.target.id); if (a) a.classList.add('on'); } }); }, { rootMargin: '0px 0px -70% 0px' });
+      hs.forEach(h => io.observe(h));
+    }
+  }
+  function openHash() { const id = (location.hash || '').replace(/^#/, ''); if (/^[A-Za-z0-9._~-]+$/.test(id)) { const t = document.getElementById(id); if (t) { t.closest('details') && (t.closest('details').open = true); t.scrollIntoView(); } } }
+
+  return { esc, fmt, hlCs, hlSql, hlJson, wireCode, barChart, lineChart, stepChart, buildToc, openHash, SERIES };
+})();
+
+const lv = Array.from({length: 60}, (_, i) => i + 1);
+KK.lineChart(document.getElementById('c-xp'), { x: lv.map(String), series: [{ name: 'Gereken XP', values: lv.map(L => Math.round(80 * Math.pow(L, 1.35) / 10) * 10) }], yLabel: 'XP', title: 'Seviye başına gereken XP' });
+const gun = Array.from({length: 30}, (_, i) => 'G' + (i + 1));
+KK.lineChart(document.getElementById('c-sim'), { x: gun, series: [
+  { name: 'Hafif (10 dk)', values: gun.map((_, i) => Math.round(40 * i + 20 * Math.sqrt(i))) },
+  { name: 'Normal (35 dk)', values: gun.map((_, i) => Math.round(120 * i + 60 * Math.sqrt(i) - (i > 10 ? 600 : 0) - (i > 20 ? 1500 : 0))) },
+  { name: 'Yoğun (90 dk)', values: gun.map((_, i) => Math.round(260 * i - (i > 6 ? 900 : 0) - (i > 14 ? 3000 : 0) - (i > 24 ? 6000 : 0))) },
+], yLabel: 'Bayt', title: 'Üç oyuncu profilinin Bayt bakiyesi' });
+const pts = []; for (let d = 0; d <= 1500; d += 1) { const s = Math.ceil(d / 60); const v = d === 0 ? 0 : s < 2 ? s * 100 : s <= 6 ? s * 40 : Math.ceil(d / 1440) * 250; if (!pts.length || pts[pts.length - 1][1] !== v) pts.push([d, v]); } pts.push([1500, pts[pts.length-1][1]]);
+KK.stepChart(document.getElementById('c-step'), { points: pts, xLabel: 'dakika', yLabel: 'TL', marks: [{ x: 120, label: '2 sa' }, { x: 360, label: '6 sa' }, { x: 1440, label: '24 sa' }], title: 'Otopark ücreti: dakika → TL' });
+KK.barChart(document.createElement('div'), { labels: ['a','b'], series: [{ name: 'x', values: [1, 2] }] });
+KK.wireCode(); KK.buildToc(document.getElementById('toc')); KK.openHash();
+</script>

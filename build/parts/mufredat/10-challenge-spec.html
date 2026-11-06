@@ -1,0 +1,233 @@
+<!-- build_page.py ile üretildi -->
+<section id="challenge-spec">
+<h2>Challenge Spec formatı</h2>
+<p>Her challenge tek bir JSON dosyasıdır. Şema, Otopark L1'in tam örneği, test harness'ı ve içerik yazarının 22 kuralı B5 §1'dedir; içerik CI doğrulayıcısı bu kontrol listesini otomatik uygular.</p>
+<h3 id="b5-1-challenge-spec-formati">1. Challenge Spec formatı</h3>
+<p>Bir Challenge Spec, bir işletme seviyesinin oyuncuya gösterilen yüzünü (müşteri isteği, sözleşme, iskelet, açık testler) ve sunucudaki hakemin kuralını (gizli testler, tohumlu üreteç, ödül) tek dosyada taşır. Bu bölüm dosyanın şemasını, test koşturma yaklaşımını ve tohumlu vaka kuralını tanımlar; B7 bunları sandbox altyapısına, B3 Savunma ve Usta Yorumu akışlarına bağlar.</p>
+<h4 id="b5-1-1-alti-tasarim-ilkesi">1.1 Altı tasarım ilkesi</h4>
+<ol><li><strong>Tek dosya, tek challenge.</strong> <code>otopark-L1.json</code>; kimlik biçimi talimat §3'tedir (<code>isletme-slug</code> + <code>-L</code> + seviye). Dosya içerik deposunda sürümlenir (<code>otopark-L1.v3.json</code>); Açılış kaydı hangi sürümle geçildiğini saklar (ayrıntı B7).</li><li><strong>Beklenenler türetilir, elle yazılmaz.</strong> Her <code>beklenen</code> referans çözümden gelir ve içerik CI her dosyada referansı çalıştırıp farkı reddeder (§1.8). Otopark L1'in 20 sabit vakası ayrıca KANON §5.1 tablosuyla birebir karşılaştırılır.</li><li><strong>Beklenenler oyuncu koduna asla girmez.</strong> Hakem yalnızca girdiyi gönderir, koşucu çıktıyı döndürür, karşılaştırma sandbox dışında yapılır (§1.6).</li><li><strong>Yazar notu yayın verisi değildir.</strong> Test gerekçeleri, mutasyon kataloğu ve referans çözüm Spec'in dışında, özel pakettedir (<code>challenge-private</code>); Spec'te yalnızca hakemin ve istemcinin ihtiyaç duyduğu alanlar bulunur.</li><li><strong>Müşteri diliyle yazılır, mühendis diliyle kapanır.</strong> <code>musteri_istegi.metin</code> NPC'nin sözleridir (Otopark L1'de KANON §5.1 birebir); <code>sozlesme_karti</code> aynı isteğin kabul kriteri hâlidir.</li><li><strong>Dil-bağımsız protokol.</strong> <code>girdi</code> ve <code>beklenen</code> JSON'dur; ikinci bir dil eklendiğinde (KANON: Python, JavaScript… "yakında") aynı Spec kullanılır, yalnızca <code>imza.tur</code> ve koşucu değişir.</li></ol>
+<h4 id="b5-1-2-alan-semasi">1.2 Alan şeması</h4>
+<p>Üst düzey alan adları değişmez (talimat §3). Aşağıdaki tablo her alanın tipini ve kuralını verir.</p><div class="tablewrap"><table><thead><tr><th>Alan</th><th>Tip</th><th>Anlam ve kurallar</th></tr></thead><tbody><tr><td class="nw"><code>id</code></td><td class="nw">string</td><td><code>^[a-z0-9]+(-[a-z0-9]+)*-L[1-5]$</code>; Türkçe karaktersiz kebab-case slug + seviye. Örn. <code>otopark-L1</code>, <code>bufe-L1</code>, <code>kargo-deposu-L1</code></td></tr><tr><td class="nw"><code>isletme</code></td><td class="nw">string</td><td>KANON §5 slug'ı (<code>otopark</code>, <code>bufe</code>, <code>manav</code>, <code>kargo-deposu</code>, …); <code>id = isletme + "-L" + seviye</code> olmalı</td></tr><tr><td class="nw"><code>seviye</code></td><td>int, 1–5</td><td>İşletme seviyesi; üst sınır işletmenin L sayısıdır (KANON §5)</td></tr><tr><td class="nw"><code>baslik</code></td><td>string, ≤ 60 karakter</td><td>İş Emri kartı ve editör sekmesi başlığı</td></tr><tr><td class="nw"><code>musteri_istegi</code></td><td class="nw">nesne</td><td><code>{npc, metin, netlestirme}</code>. <code>metin</code> NPC'nin sözleri; <code>netlestirme = {min_soru, sorular[{id, soru, cevap, madde[]}], keskin_goz?}</code> (KANON: en az 4 soru)</td></tr><tr><td class="nw"><code>sozlesme_karti</code></td><td>dizi, <code>{madde, kural}</code></td><td>Gereksinim Netleştirme'nin ürettiği sabit kabul kriterleri. Madde, ancak onu açan soru sorulunca karta yazılır; sorulmayan madde kartta kilitli kalır (§3.2)</td></tr><tr><td class="nw"><code>imza</code></td><td class="nw">nesne</td><td><code>{tur, sinif, ad, parametreler[{ad, tip}], donus, metin}</code>; <code>tur</code> ∈ {<code>static-metot</code>, <code>sinif-senaryo</code>, <code>konsol-cikti</code>}; <code>metin</code> kanonik C# imzası</td></tr><tr><td class="nw"><code>iskelet_kod</code></td><td class="nw">string</td><td>Editör açılışı. Oyuncu yalnızca <code>//#BASLA</code> ile <code>//#BITIS</code> arasını düzenler (Monaco salt-okunur aralık işareti)</td></tr><tr><td class="nw"><code>public_tests[]</code></td><td class="nw">dizi</td><td>Açık testler; girdi ve beklenen istemciye gider (KANON: Otopark L1'de 6)</td></tr><tr><td class="nw"><code>hidden_tests[]</code></td><td class="nw">dizi</td><td>Gizli testler; yalnızca hakemde durur. İstemci adedini ve kategori balonunu görür (Otopark L1'de 14)</td></tr><tr><td class="nw"><code>seeded_tests</code></td><td><code>{kural, adet}</code></td><td><code>kural</code> üreteç tanımı (§1.7), <code>adet</code> KANON'a göre 6</td></tr><tr><td class="nw"><code>edge_cases[]</code></td><td>dizi, <code>{ad, test_ids[]}</code></td><td>Yazarın düşündüğü kenar durumları; CI her birinin en az bir geçerli testle kapsandığını doğrular</td></tr><tr><td><code>ipucu_merdiveni</code></td><td><code>{pusula, fener, taslak, ornek}</code></td><td>Dört kademe, içerik bankası metni; ücretsiz ve sınırsız (KANON §8)</td></tr><tr><td><code>savunma_sorulari[]</code></td><td class="nw">dizi</td><td><code>{id, soru, satir_deseni, kabul[], ret[], ornek_cevap}</code>; en az 4. <code>satir_deseni</code> Kurul'un oyuncu kodunda satır seçmek için kullandığı düzenli ifadedir</td></tr><tr><td class="nw"><code>rubrik</code></td><td class="nw">nesne</td><td><code>{savunma{dogruluk, tamlik, aciklik, esik}, berrak_zihin, usta_yorumu{xp_min, xp_max, gelire_etki}, acilis{kosullar[], deneme_carpani}}</code></td></tr><tr><td class="nw"><code>odul</code></td><td><code>{xp, bayt}</code></td><td><code>xp</code> KANON §3.3'ten: T1 açılışı 300; yükseltme L2–L5 için 150 / 250 / 400 / 600. <code>bayt</code> her zaman 0'dır: Bayt gelirden ve B2 §5.2 ilk-kez bonuslarından akar, Spec'ten değil</td></tr></tbody></table></div><p>Test nesnesi <code>{id, girdi, beklenen, etiket}</code> biçimindedir. <code>id</code>: açık testler <code>A1…</code>, gizli testler <code>G1…</code>, tohumlu vakalar <code>T1…</code>. <code>etiket</code>: Müfettiş kategorisi slug'ı (§7.1); açık testlerde de doldurulur, böylece tek bir kategori fonksiyonu her vakayı sınıflar.</p>
+<h4 id="b5-1-3-girdi-ve-beklenen-bicimleri">1.3 <code>girdi</code> ve <code>beklenen</code> biçimleri</h4>
+<p><code>girdi</code> nesnesinin anahtarları metodun parametre adlarıdır. Tek bir karşılaştırma kuralı vardır: <strong>tür tam eşitlik, ondalık sayısal eşitlik</strong>. İlk dotnet çalıştırmasında <code>Order.Total</code> 900,0 döndürdü ve metin karşılaştırması 900 ile kırmızı verdi; bu yüzden <code>decimal</code> her zaman sayısal karşılaştırılır (ölçek önemsizdir).</p><div class="tablewrap"><table><thead><tr><th>Tür</th><th><code>girdi</code></th><th><code>beklenen</code></th><th>Karşılaştırma</th></tr></thead><tbody><tr><td class="nw">tamsayı</td><td><code>{"dakika": 120}</code></td><td class="nw"><code>80</code></td><td>tam eşitlik</td></tr><tr><td class="nw">ondalık</td><td><code>{"fiyat": 12.35, "verilen": 20}</code></td><td><code>"1x5 2x1 …"</code> ya da sayı</td><td><code>decimal</code> sayısal; <code>double</code> kullanılmaz</td></tr><tr><td class="nw">metin</td><td><code>{"siparis": "hamsi:2,levrek:1"}</code></td><td class="nw"><code>"…"</code></td><td>ordinal, kültürden bağımsız</td></tr><tr><td class="nw">mantıksal</td><td><code>{"plaka": "34 ABC 123"}</code></td><td class="nw"><code>true</code></td><td class="nw">eşitlik</td></tr><tr><td class="nw">liste</td><td><code>{"raflar": [5, 0, 12]}</code></td><td><code>[2, 5]</code></td><td>eleman eleman, sıra önemli</td></tr><tr><td class="nw">enum</td><td><code>{"tur": "Engelli"}</code> ya da <code>{"tur": 7}</code></td><td>ad ya da sayı</td><td>sayı, tanımsız değer testi içindir</td></tr><tr><td class="nw">tarih</td><td><code>{"giris": "2026-03-10T23:00"}</code></td><td class="nw">ISO-8601</td><td><code>DateTime</code>, saniye 0</td></tr><tr><td class="nw">istisna</td><td class="nw">herhangi</td><td><code>{"hata": "ArgumentOutOfRangeException", "parametre": "dakika"}</code></td><td>tip + parametre adı; ileti metni karşılaştırılmaz</td></tr><tr><td class="nw">senaryo</td><td><code>{"kapasite": 2, "kuyruk": 1, "islemler": ["G:A", "C:A"]}</code></td><td><code>{"sonuclar": [...], "iceride": 2, "kuyruk": [...]}</code></td><td>alan alan</td></tr></tbody></table></div>
+<details class="acc"><summary id="b5-1-4-tam-ornek-otopark-l1">1.4 Tam örnek: <code>otopark-L1</code></summary>
+<p>Aşağıdaki dosya Otopark L1'in tamamıdır. §1.8'deki 22 doğrulama kuralının hepsinden geçmiştir (çıktı: §9).</p><pre class="code long" data-lang="json" tabindex="0"><code>{
+  "id": "otopark-L1",
+  "isletme": "otopark",
+  "seviye": 1,
+  "baslik": "Otopark Ücret Sistemi",
+  "musteri_istegi": {
+    "npc": "Hasan Abi",
+    "metin": "2 saatten az kalanlar: saati 100 TL. 2–6 saat arası: her saat 40 TL. 6–24 saat arası kalanlar: günlük 250 TL. Bunu hesaplayan bir sistem istiyorum.",
+    "netlestirme": {
+      "min_soru": 4,
+      "sorular": [
+        { "id": "S1", "soru": "1 saat 10 dakika kalan ne öder?", "cevap": "Başlayan saat tam sayılır; 2 saatten az kaldı: 200.", "madde": [2, 3] },
+        { "id": "S2", "soru": "Tam 2 saat kalan ne öder?", "cevap": "O artık 2–6 dilimi: 2 × 40 = 80.", "madde": [2] },
+        { "id": "S3", "soru": "Tam 6 saat kalan ne öder?", "cevap": "Hâlâ 2–6 dilimi: 240; 6'yı geçen güne girer.", "madde": [2] },
+        { "id": "S4", "soru": "24 saati aşan ne öder?", "cevap": "Her başlayan gün 250.", "madde": [4] },
+        { "id": "S5", "soru": "Girip aynı dakika çıkan ne öder?", "cevap": "Ödemez. Bariyer eksi süre göndermez.", "madde": [1] },
+        { "id": "S6", "soru": "Süreyi nasıl göndereceksin: dakika mı, saat mi, kesirli mi?", "cevap": "Dakika, tam sayı. Kesir yok.", "madde": [1, 5] },
+        { "id": "S7", "soru": "Ücret kuruşlu olabilir mi?", "cevap": "TL, tam sayı. Kuruş yok.", "madde": [5] },
+        { "id": "S8", "soru": "Tam 24 saat kalan ne öder?", "cevap": "Bir gün: 250. Bir dakika fazlası ikinci gün.", "madde": [4] }
+      ],
+      "keskin_goz": {
+        "madde": 6,
+        "tetik": "serbest metin: aynı mesajda 119 ve 120 geçer ya da 'uzun kalan daha az ödüyor' anlamı (Haiku sınıflandırıcı, güven &gt;= 0,8)",
+        "cevap": "Biliyorum, uzun kalan kazanıyor; açılış kampanyası böyle.",
+        "odul": { "rozet": "Keskin Göz", "xp": 50 }
+      }
+    }
+  },
+  "sozlesme_karti": [
+    { "madde": 1, "kural": "Girdi dakika cinsinden tam sayı, &gt;= 0 (bariyer negatif göndermez); 0 -&gt; 0 TL" },
+    { "madde": 2, "kural": "Dilimi ham kalış süresi belirler: dakika &lt; 120 -&gt; 1. dilim; 120 &lt;= dakika &lt;= 360 -&gt; 2. dilim (sınırlar dâhil); dakika &gt; 360 -&gt; günlük" },
+    { "madde": 3, "kural": "Başlayan saat tam sayılır: saat = ceil(dakika / 60); 1. dilim saat x 100, 2. dilim saat x 40" },
+    { "madde": 4, "kural": "24 saati aşan kalış: her başlayan gün 250 (gun = ceil(dakika / 1440), gun x 250)" },
+    { "madde": 5, "kural": "İmza: public static int Otopark.UcretHesapla(int dakika); dönüş TL, tam sayı" },
+    { "madde": 6, "kural": "Anomali (119 -&gt; 200, 120 -&gt; 80) müşterinin bilinçli kararıdır; fark eden oyuncu Keskin Göz (+50 XP)" }
+  ],
+  "imza": {
+    "tur": "static-metot",
+    "sinif": "Otopark",
+    "ad": "UcretHesapla",
+    "parametreler": [ { "ad": "dakika", "tip": "int" } ],
+    "donus": "int",
+    "metin": "public static int Otopark.UcretHesapla(int dakika)"
+  },
+  "iskelet_kod": "// İş emri #1 — Otopark (Çarşı) — Müşteri: Hasan Abi\npublic static class Otopark\n{\n    // dakika: aracın içeride kaldığı toplam süre (0 veya daha büyük)\n    // dönüş: ödenecek ücret, TL (tam sayı)\n    public static int UcretHesapla(int dakika)\n    {\n        //#BASLA\n        // kodun buraya\n        //#BITIS\n    }\n}\n",
+  "public_tests": [
+    { "id": "A1", "girdi": { "dakika": 30 },   "beklenen": 100, "etiket": "iki-saatten-az" },
+    { "id": "A2", "girdi": { "dakika": 61 },   "beklenen": 200, "etiket": "iki-saatten-az" },
+    { "id": "A3", "girdi": { "dakika": 120 },  "beklenen": 80,  "etiket": "iki-saat-civari" },
+    { "id": "A4", "girdi": { "dakika": 121 },  "beklenen": 120, "etiket": "iki-saat-civari" },
+    { "id": "A5", "girdi": { "dakika": 361 },  "beklenen": 250, "etiket": "alti-saat-civari" },
+    { "id": "A6", "girdi": { "dakika": 1441 }, "beklenen": 500, "etiket": "bir-gun-civari" }
+  ],
+  "hidden_tests": [
+    { "id": "G1",  "girdi": { "dakika": 0 },      "beklenen": 0,     "etiket": "hemen-cikanlar" },
+    { "id": "G2",  "girdi": { "dakika": 1 },      "beklenen": 100,   "etiket": "hemen-cikanlar" },
+    { "id": "G3",  "girdi": { "dakika": 59 },     "beklenen": 100,   "etiket": "iki-saatten-az" },
+    { "id": "G4",  "girdi": { "dakika": 60 },     "beklenen": 100,   "etiket": "iki-saatten-az" },
+    { "id": "G5",  "girdi": { "dakika": 119 },    "beklenen": 200,   "etiket": "iki-saat-civari" },
+    { "id": "G6",  "girdi": { "dakika": 180 },    "beklenen": 120,   "etiket": "iki-alti-arasi" },
+    { "id": "G7",  "girdi": { "dakika": 359 },    "beklenen": 240,   "etiket": "alti-saat-civari" },
+    { "id": "G8",  "girdi": { "dakika": 360 },    "beklenen": 240,   "etiket": "alti-saat-civari" },
+    { "id": "G9",  "girdi": { "dakika": 720 },    "beklenen": 250,   "etiket": "gunluk-tarife" },
+    { "id": "G10", "girdi": { "dakika": 1439 },   "beklenen": 250,   "etiket": "bir-gun-civari" },
+    { "id": "G11", "girdi": { "dakika": 1440 },   "beklenen": 250,   "etiket": "bir-gun-civari" },
+    { "id": "G12", "girdi": { "dakika": 2880 },   "beklenen": 500,   "etiket": "gunu-asanlar" },
+    { "id": "G13", "girdi": { "dakika": 2881 },   "beklenen": 750,   "etiket": "gunu-asanlar" },
+    { "id": "G14", "girdi": { "dakika": 100000 }, "beklenen": 17500, "etiket": "gunu-asanlar" }
+  ],
+  "seeded_tests": {
+    "kural": {
+      "uretec": "otopark-L1-v1",
+      "tohum": "SHA-256(oyuncuId + '|' + yyyy-MM-dd + '|' + challengeId) ilk 8 bayt -&gt; uint64 (little-endian)",
+      "prng": "SplitMix64; ret örnekleme (yasak değer gelirse yeniden çek)",
+      "katmanlar": [
+        { "id": "T1", "ad": "dilim-1-ic",   "aralik": [2, 118],      "dislanan": "saat-komsulari + 20 sabit vaka" },
+        { "id": "T2", "ad": "dilim-2-ic",   "aralik": [122, 358],    "dislanan": "saat-komsulari + 20 sabit vaka" },
+        { "id": "T3", "ad": "gunluk-ic",    "aralik": [381, 1399],   "dislanan": "saat-komsulari + 20 sabit vaka" },
+        { "id": "T4", "ad": "cok-gunlu-ic", "aralik": [1443, 20000], "dislanan": "gun-komsulari + 20 sabit vaka" },
+        { "id": "T5", "ad": "saat-siniri",  "taban": [240, 300],     "sapma": [-1, 0, 1] },
+        { "id": "T6", "ad": "gun-siniri",   "katlar": [3, 4, 5, 7, 10], "carpan": 1440, "sapma": [-1, 0, 1] }
+      ],
+      "garanti": [
+        "6 değer birbirinden farklı",
+        "20 sabit vakadan hiçbiriyle çakışmaz",
+        "T5 ve T6'dan tam biri tam kat (sapma 0), diğeri komşu (-1 ya da +1)",
+        "aynı (oyuncuId, gün, challengeId) -&gt; aynı küme; küme ilk çalıştırmada Redis'e yazılır, gün boyu sabit"
+      ]
+    },
+    "adet": 6
+  },
+  "edge_cases": [
+    { "ad": "sıfır dakika", "test_ids": ["G1"] },
+    { "ad": "en küçük pozitif kalış", "test_ids": ["G2"] },
+    { "ad": "tam saat katı (1. ve 2. dilimde)", "test_ids": ["G4", "G6"] },
+    { "ad": "anomali noktası 119/120", "test_ids": ["G5", "A3"] },
+    { "ad": "6 saat sınırı ve komşuları", "test_ids": ["G7", "G8", "A5"] },
+    { "ad": "tam gün katı", "test_ids": ["G11", "G12"] },
+    { "ad": "günü aşan ilk dakika", "test_ids": ["A6", "G13"] },
+    { "ad": "büyük girdi", "test_ids": ["G14"] }
+  ],
+  "ipucu_merdiveni": {
+    "pusula": "Bu iş emrinde üç ayrı iş var: (1) dakikayı 'başlayan saat'e çevirmek, (2) süreye göre tarife dilimini seçmek, (3) dilimin birim fiyatıyla çarpmak. Önce yalnızca ilkini çöz: 61 dakika kaç başlayan saattir? 120 dakika? 121 dakika?",
+    "fener": "Dilimi yuvarlanmış saat değil, ham dakika belirler (Sözleşme madde 2): 119 dakika hâlâ '2 saatten az', 120 dakika artık '2–6 saat'. Başlayan saat için Ders 1.2'deki kalıbı kullan: tam sayı bölmesinden önce bölenin bir eksiğini ekle. 24 saatten sonrası için aynı kalıp 1440 ile gerekir.",
+    "taslak": "dakika 0 veya altındaysa -&gt; 0 dön\nsaat = ___   (başlayan saat, Ders 1.2 kalıbı)\ndakika &lt; 120 ise -&gt; saat x ___\ndakika &lt;= 360 ise -&gt; saat x ___\naksi halde: gun = ___   (başlayan gün) -&gt; gun x ___",
+    "ornek": "Benzer ama farklı bir iş: bisiklet kiralama. 45 dakikadan az: başlayan her 15 dakika 10 TL; 45–180 dakika (sınırlar dâhil): başlayan her 30 dakika 15 TL; 180 dakikayı aşan: başlayan gün x 120 TL.\npublic static int BisikletUcreti(int dakika)\n{\n    if (dakika &lt;= 0) return 0;\n    if (dakika &lt; 45)   return (dakika + 14) / 15 * 10;\n    if (dakika &lt;= 180) return (dakika + 29) / 30 * 15;\n    return (dakika + 1439) / 1440 * 120;\n}"
+  },
+  "savunma_sorulari": [
+    {
+      "id": "D1",
+      "soru": "121 dakika neden 120 TL? Hangi satır belirliyor?",
+      "satir_deseni": "(&lt;=|&lt;)\\s*360|\\*\\s*40",
+      "kabul": ["121'in 2. dilimde (120–360) olduğunu söyler", "başlayan saatin 3 olduğunu gösterir", "3 x 40 = 120 hesabını yapar"],
+      "ret": ["'Test böyle istiyor' (kodu açıklamıyor)", "dilimi yuvarlanmış saatten bulduğunu söyler"],
+      "ornek_cevap": "121 dakika 120'den büyük ve 360'tan küçük olduğu için 2. dilimde. Bu dilimde ücret başlayan saat x 40. 121 dakika, 2 saati bir dakika geçtiği için 3. saat başlamış sayılıyor: (121 + 59) / 60 = 3. Yani 3 x 40 = 120. Dilimi seçen satır `if (dakika &lt;= 360)`, ücreti veren satır `return saat * 40;`."
+    },
+    {
+      "id": "D2",
+      "soru": "`(dakika + 59) / 60` ne işe yarıyor? Neden 59?",
+      "satir_deseni": "\\+\\s*59",
+      "kabul": ["tam sayı bölmesinin küsuratı attığını söyler", "59 eklemenin artığı bir sonraki saate taşıdığını (yukarı yuvarlama) açıklar", "bir örnek verir (60 -&gt; 1, 61 -&gt; 2)"],
+      "ret": ["'Saati hesaplıyor' deyip yuvarlamayı anlatmaz", "60 yerine neden 59 olduğunu açıklayamaz"],
+      "ornek_cevap": "Tam sayı bölmesi küsuratı atar, ben ise artan 1 dakika bile olsa bir sonraki saati saymak istiyorum. 59 eklersem 60'ın tam katlarında sonuç değişmez, bir fazlasında yükselir: (60 + 59) / 60 = 1, (61 + 59) / 60 = 2. 60 ekleseydim 60 dakika da 2 saat çıkardı."
+    },
+    {
+      "id": "D3",
+      "soru": "119 dakika 200 TL ama 120 dakika 80 TL. Kodunda bunu hangi satır sağlıyor?",
+      "satir_deseni": "&lt;\\s*120",
+      "kabul": ["`dakika &lt; 120` satırını gösterir", "anomaliyi müşterinin kararı olarak bilir (Sözleşme madde 6)", "farkı oluşturan şeyin 100 TL ile 40 TL birim fiyatı olduğunu söyler"],
+      "ret": ["119'un neden 200 olduğunu hesaplayamaz", "'Kodda hata var' diyerek sözleşmeyi suçlar"],
+      "ornek_cevap": "119 dakika `dakika &lt; 120` koşuluna giriyor, yani 1. dilim: başlayan saat 2, 2 x 100 = 200. 120 dakika bu koşula girmiyor, 2. dilimin alt sınırı: 2 x 40 = 80. Hasan Abi bunu bilinçli istedi, sözleşmenin 6. maddesi."
+    },
+    {
+      "id": "D4",
+      "soru": "1.440 dakika ile 1.441 dakika arasında kodun davranışı nasıl değişiyor?",
+      "satir_deseni": "1439|1440",
+      "kabul": ["1440 için gün sayısının 1, 1441 için 2 olduğunu hesaplar", "1439 eklemenin başlayan gün yuvarlaması olduğunu söyler"],
+      "ret": ["gün hesabını saat hesabıyla karıştırır", "1441 için 250 sonucunu savunur"],
+      "ornek_cevap": "(1440 + 1439) / 1440 = 1, yani 1 gün, 250 TL. (1441 + 1439) / 1440 = 2, ikinci gün başladı, 500 TL. 1439 eklemek, saat için 59 eklemenin günlük hâli."
+    },
+    {
+      "id": "D5",
+      "soru": "`dakika &lt;= 0` satırını silsen 0 dakika için ne döner? Satır neden duruyor?",
+      "satir_deseni": "&lt;=\\s*0",
+      "kabul": ["0 için saat = 0 ve 0 x 100 = 0 olduğunu hesaplar", "satırın negatif girdiye karşı koruma ve niyet belirtme olduğunu söyler"],
+      "ret": ["'Silersem program çöker' der (yanlış)"],
+      "ornek_cevap": "Silsem de 0 dönerdi: saat = (0 + 59) / 60 = 0, 0 x 100 = 0. Satır sözleşmedeki 'girdi &gt;= 0' varsayımını koda yazıyor; negatif bir kayıt gelirse eksi ücret hesaplamak yerine 0 döndürüyor."
+    }
+  ],
+  "rubrik": {
+    "savunma": { "dogruluk": 50, "tamlik": 30, "aciklik": 20, "esik": 70 },
+    "berrak_zihin": 0.15,
+    "usta_yorumu": { "xp_min": 10, "xp_max": 30, "gelire_etki": false },
+    "acilis": { "kosullar": ["public_tests 6/6", "hidden_tests 14/14", "seeded_tests 6/6", "savunma &gt;= 70"], "deneme_carpani": 0.5 }
+  },
+  "odul": { "xp": 300, "bayt": 0 }
+}</code></pre><p>Dört not. <strong>Birincisi</strong>, <code>musteri_istegi.metin</code> KANON §5.1'in ve <code>A-vizyon-FINAL.md</code> §7'nin Hasan Abi cümlesidir; tek karakter değişmemiştir. <strong>İkincisi</strong>, <code>sozlesme_karti</code> altı maddedir ve KANON tablosuyla sözcük sözcük aynıdır (JSON'da "≥" ve "→" işaretleri ASCII karşılıklarıyla yazıldı: <code>&gt;=</code>, <code>-&gt;</code>). <strong>Üçüncüsü</strong>, <code>etiket</code> değerleri §7.1'deki sekiz kategoridir ve CI, her etiketin <code>Kategori.Bul(dakika)</code> fonksiyonuyla aynı çıktığını doğrular. <strong>Dördüncüsü</strong>, <code>odul.bayt</code> sıfırdır: İş Emri'nin ödülü Açılış XP'si (300) ve gelirdir; Açılış Kurdelesi'nin 100 B'si B2 §5.2'de sunucu kuralıdır, Spec alanı değildir.</p>
+</details>
+<h4 id="b5-1-5-test-harness-yaklasimi-ve-karar">1.5 Test harness yaklaşımı ve karar</h4>
+<p>İki aday vardı: <strong>A — sabit imzalı static metot</strong> (oyuncu metodu yazar, harness çağırır; xUnit benzeri) ve <strong>B — stdin/stdout</strong> (oyuncu <code>Main</code> yazar, harness girdiyi standart girdiden verir, standart çıktıyı karşılaştırır).</p><div class="tablewrap"><table><thead><tr><th>Ölçüt</th><th>A. Static metot</th><th>B. stdin/stdout</th></tr></thead><tbody><tr><td>Oyuncunun yazdığı</td><td>Yalnızca metot gövdesi</td><td><code>Main</code>, <code>Console.ReadLine</code>, ayrıştırma, biçimleme ve metot</td></tr><tr><td>Başlangıç yükü (15 yaş)</td><td>Düşük: "imza sözleşmedir" (Ders 1.4)</td><td>Yüksek: girdi ayrıştırma asıl konunun önüne geçer</td></tr><tr><td>İmza denetimi</td><td>Derleme zamanında; hata Türkçe hata tablosundan gelir</td><td>Yok; yanlış biçim "yanlış çıktı" gibi görünür</td></tr><tr><td>İstisna ve tür testi</td><td>Doğrudan (tip + parametre adı)</td><td>Yapılamaz; çıkış kodu ve hata metni kırılgandır</td></tr><tr><td>Zengin tipler (<code>List</code>, <code>enum</code>, <code>DateTime</code>, sınıf)</td><td class="nw">Doğrudan</td><td>Her tip için metinsel serileştirme gerekir</td></tr><tr><td>Kültür ve biçim</td><td class="nw">Etkisiz</td><td>Ondalık ayracı, satır sonu, boşluk farkı sahte kırmızı üretir</td></tr><tr><td class="nw">Hız</td><td>Tek süreç, 26 vaka milisaniyeler</td><td>Vaka başına süreç ya da döngü</td></tr><tr><td>Zaman aşımı</td><td>Vaka bazında günlük, toplam 10 sn (KANON §9)</td><td>Süreç bazında; hangi vakanın takıldığı belirsiz</td></tr><tr><td>Sızıntı yüzeyi</td><td>Beklenenler sandbox'a girmez</td><td>Girdi ve çıktı aynı kanaldan geçer; yazdırma ile test ezberlemek kolaylaşır</td></tr><tr><td>Gerçek dünya karşılığı</td><td>Servis metodu, birim testi</td><td>Komut satırı betiği</td></tr><tr><td>Öğretici değer</td><td>Fonksiyon sözleşmesi; Finans'taki unit test kültürüne köprü</td><td><code>Console</code> giriş çıkışı (Ders 1.1'de zaten var)</td></tr></tbody></table></div><p><strong>Karar: A.</strong> Tüm İş Emri'leri <code>static-metot</code> (tek çağrı) ya da <code>sinif-senaryo</code> (durumlu sınıf, işlem dizisi) olarak kurulur. B yalnızca <code>imza.tur = "konsol-cikti"</code> görevlerinde kalır: Meydan Saati gibi <code>Console.WriteLine</code> öğreten görevlerde koşucu <code>Console.SetOut</code> ile çıktıyı yakalar ve satır satır karşılaştırır. Gerekçenin özeti: B, 13–25 yaş yeni başlayanların dikkatini "kodun işi" yerine "girdiyi ayrıştırmaya" harcatır; A ise Hasan Abi'nin istediği şeyi, yani bir hesaplama sözleşmesini doğrudan modeller.</p>
+<h4 id="b5-1-6-hakem-kosucu-ayrimi-ve-harness-iskeleti">1.6 Hakem–koşucu ayrımı ve harness iskeleti</h4>
+<p>Üretimde iki süreç vardır. <em>Koşucu</em>, gVisor sandbox'ında (ağ yok, salt okunur dosya sistemi, 256 MB / 2 vCPU / 10 sn; KANON §9) oyuncu kodunu Roslyn ile bellek içinde derler ve yalnızca <code>{id, girdi}</code> ikililerini alır, <code>{id, cikti | hata | sure_ms}</code> döndürür. <em>Hakem</em>, sandbox dışında beklenenleri tutar ve karşılaştırır. Oyuncu kodu <code>beklenen</code> değerlerini ve henüz çağrılmamış girdileri göremez; çağrıldığı anda yalnızca o vakanın girdisini parametre olarak alır. Sandbox'ta ağ ve dosya yazma yoktur, koşucudan çıkan tek kanal hakemin okuduğu dönüş değeridir; bu yüzden bir vakanın girdisi oyuncu kodundan dışarı sızamaz ve koşucuda okunacak bir beklenen yoktur. Aşağıdaki iskelet anlaşılırlık için ikisini tek yöntemde gösterir.</p><pre class="code" data-lang="cs"><code>public static List&lt;Sonuc&gt; Kos(JsonElement spec, Func&lt;int, int&gt; oyuncu, string oyuncuId, DateOnly gun)
+{
+    var l = new List&lt;Sonuc&gt;();
+    void Tek(string id, string tur, int dakika, int beklenen)
+    {
+        string gercek; bool ok; string yon = "";
+        try
+        {
+            int g = oyuncu(dakika);
+            gercek = g.ToString();
+            ok = g == beklenen;
+            if (!ok) yon = g &gt; beklenen ? "fazla" : "eksik";
+        }
+        catch (Exception e) { gercek = e.GetType().Name; ok = false; yon = "hata"; }
+        l.Add(new Sonuc(id, tur, dakika, beklenen, gercek, ok, Kategori.Bul(dakika), yon));
+    }
+    foreach (var t in spec.GetProperty("public_tests").EnumerateArray())
+        Tek(t.GetProperty("id").GetString()!, "acik", t.GetProperty("girdi").GetProperty("dakika").GetInt32(), t.GetProperty("beklenen").GetInt32());
+    foreach (var t in spec.GetProperty("hidden_tests").EnumerateArray())
+        Tek(t.GetProperty("id").GetString()!, "gizli", t.GetProperty("girdi").GetProperty("dakika").GetInt32(), t.GetProperty("beklenen").GetInt32());
+    foreach (var t in Tohumlu.Uret(oyuncuId, gun))                       // beklenen: sunucudaki referans çözüm
+        Tek(t.Id, "tohumlu", t.Dakika, Otopark.UcretHesapla(t.Dakika));
+    return l;
+}</code></pre><p>Beş koşucu kuralı:</p><ol><li><strong>Vaka başına koruma.</strong> Her çağrı kendi <code>try/catch</code>'indedir; istisna <code>hata</code> olarak döner, süreç düşmez.</li><li><strong>Satır satır akış.</strong> Her vakadan sonra çıktı yıkanır (<code>Flush</code>). 10 sn dolup süreç öldürülürse hakem hangi vakanın takıldığını bilir ve <code>ZAMAN_ASIMI</code> yazar; önceki vakalar korunur.</li><li><strong>Saf fonksiyon denetimi.</strong> Tüm takım iki kez, ikinci kez karıştırılmış sırayla koşturulur; sonuçlar farklıysa oyuncu kodu <code>static</code> alanla vakalar arası durum taşıyor demektir ve Türkçe uyarı çıkar ("Metodun önceki çağrıya bağlı davranıyor"). Derleme maliyeti (≈1,5 sn; A-vizyon-FINAL §12) baskındır, ikinci koşturma milisaniyedir.</li><li><strong>Sınıf senaryoları.</strong> <code>sinif-senaryo</code> görevlerinde her senaryo için yeni örnek (<code>new KapasiteYoneticisi(...)</code>) oluşturulur; senaryolar arasında durum sızmaz.</li><li><strong>Müfettiş koşulu.</strong> Hakem, gizli ve tohumlu vakaları ancak açık testler 6/6 yeşilken çalıştırır ve günde en çok 10 kez (B5 önerisi, Ek A). Aksi halde Müfettiş bir "oracle" olurdu: oyuncu kategori balonlarından ikili arama yapabilirdi.</li></ol>
+<details class="acc"><summary id="b5-1-7-tohumlu-test-uretim-kurali">1.7 Tohumlu test üretim kuralı</summary>
+<p>Tohumlu vakaların iki işi vardır: (1) ezberi ve paylaşımı kırmak (başkasının listesi sizin listeniz değildir) ve (2) her oyuncuda ortak ama sabit gizli testlerin dışında kalan bölgeleri taramak. Kural şudur:</p><ul><li><strong>Tohum.</strong> <code>SHA-256(UTF-8: oyuncuId + "|" + yyyy-MM-dd + "|" + challengeId)</code> özetinin ilk 8 baytı, küçük-endian <code>uint64</code>. <code>oyuncuId</code> hesap kimliğidir (takma ad değil; takma ad değişince küme değişmesin). <strong>Gün</strong>, B2 §4.4'teki günlük sınırlarla aynı biçimde TR saatiyle 04:00'te değişen oyun günüdür (B5 önerisi).</li><li><strong>Üreteç.</strong> SplitMix64; yasak değer çıkarsa yeniden çekilir (ret örnekleme). Üreteç sürümlüdür (<code>otopark-L1-v1</code>); sürüm değişince Spec sürümü de değişir.</li><li><strong>Küme gün boyu sabit.</strong> Küme oyuncunun o günkü ilk Müfettiş çağrısında üretilir ve Redis'e <code>seed:{oyuncuId}:{challengeId}:{gün}</code> anahtarıyla yazılır; aynı gün tekrar denemede oyuncu aynı vakalarla karşılaşır (hata ayıklarken hedef oynamaz). Ertesi gün yeni küme çıkar.</li><li><strong>Beklenen.</strong> Sunucuda referans çözümle üretilir ve oyuncuya yazılmaz; kırmızı olursa yalnızca kategori ve yön (fazla/eksik) söylenir.</li></ul><p><strong>Hangi dilimden kaç tane?</strong> Altı vaka: dört "iç" vaka (her tarife diliminden ve çok günlü bölgeden birer tane) ve iki "sınır komşuluğu" vakası.</p><div class="tablewrap"><table><thead><tr><th>Vaka</th><th>Katman</th><th>Üretim kuralı</th><th>Yakaladığı hata türü</th></tr></thead><tbody><tr><td class="nw">T1</td><td class="nw"><code>dilim-1-ic</code></td><td>[2, 118]; saat komşuları ve 20 sabit vaka hariç</td><td>yukarı yuvarlama yok; dilimi yuvarlanmış saatle seçmek</td></tr><tr><td class="nw">T2</td><td class="nw"><code>dilim-2-ic</code></td><td>[122, 358]; aynı dışlama</td><td>2. dilimde yukarı yuvarlama</td></tr><tr><td class="nw">T3</td><td class="nw"><code>gunluk-ic</code></td><td>[381, 1399]; aynı dışlama</td><td>günlük dilimde gün sayısı</td></tr><tr><td class="nw">T4</td><td class="nw"><code>cok-gunlu-ic</code></td><td>[1443, 20000]; gün komşuları ve sabitler hariç</td><td>çok günlü yuvarlama, büyük girdi</td></tr><tr><td class="nw">T5</td><td class="nw"><code>saat-siniri</code></td><td>taban ∈ {240, 300}, sapma ∈ {−1, 0, +1}</td><td>2. dilimde tam saat katı kayması (sabit testler 60/120/180/360'ı kapsar)</td></tr><tr><td class="nw">T6</td><td class="nw"><code>gun-siniri</code></td><td>n ∈ {3, 4, 5, 7, 10}, n × 1440 + sapma</td><td>1'den fazla tam gün kayması (sabit testler 1440/2880'i kapsar)</td></tr></tbody></table></div><p><em>Saat komşusu</em>: <code>v mod 60 ∈ {0, 1, 59}</code>; <em>gün komşusu</em>: <code>v mod 1440 ∈ {0, 1, 1439}</code>. İç katmanlar komşuları dışlar, böylece her katmanın amacı ayrı kalır.</p><p><strong>Sınır değerlerinin garantisi üç katmanlıdır.</strong> (1) Sabit 20 vaka tarife sınırlarını (119/120/121, 359/360/361, 1439/1440/1441) tohumdan bağımsız kapsar. (2) Tohumlu T5 ve T6 <strong>eş-zamanlı</strong> üretilir: ikisinden tam biri tam kat (sapma 0), diğeri komşudur (−1 ya da +1); böylece her sette hem "tam kat" hem "komşu" davranışı yoklanır. (3) Hiçbir tohumlu değer sabit vakalarla çakışmaz, altı değer birbirinden farklıdır.</p><pre class="code" data-lang="cs"><code>public static List&lt;TVaka&gt; Uret(string oyuncuId, DateOnly gun)
+{
+    ulong s = Tohum(oyuncuId, gun);
+    var l = new List&lt;TVaka&gt;();
+    int t1 = Sec(ref s, 2, 118, v =&gt; Sabit.Contains(v) || SaatKomsu(v));
+    int t2 = Sec(ref s, 122, 358, v =&gt; Sabit.Contains(v) || SaatKomsu(v));
+    int t3 = Sec(ref s, 381, 1399, v =&gt; Sabit.Contains(v) || SaatKomsu(v));
+    int t4 = Sec(ref s, 1443, 20000, v =&gt; Sabit.Contains(v) || GunKomsu(v));
+
+    // sınır komşuluğu: biri tam kat (0), diğeri komşu (−1/+1)
+    bool saatTam = (Sonraki(ref s) &amp; 1) == 0;
+    int sapma = (Sonraki(ref s) &amp; 1) == 0 ? -1 : +1;
+    int saatTaban = (Sonraki(ref s) &amp; 1) == 0 ? 240 : 300;
+    int[] gunKatlari = { 3, 4, 5, 7, 10 };
+    int n = gunKatlari[(int)(Sonraki(ref s) % (ulong)gunKatlari.Length)];
+    int t5 = saatTaban + (saatTam ? 0 : sapma);
+    int t6 = n * 1440 + (saatTam ? sapma : 0);
+
+    l.Add(new("T1", t1, "dilim-1-ic"));
+    l.Add(new("T2", t2, "dilim-2-ic"));
+    l.Add(new("T3", t3, "gunluk-ic"));
+    l.Add(new("T4", t4, "cok-gunlu-ic"));
+    l.Add(new("T5", t5, "saat-siniri"));
+    l.Add(new("T6", t6, "gun-siniri"));
+    return l;
+}</code></pre><p>Ölçüm (10.000 oyuncu, 2026-11-02): her küme altı farklı değer içerir, sabit 20 vakayla çakışmaz, katman aralıklarına uyar, T5/T6'dan tam biri tam kattır ve aynı tohum aynı kümeyi verir (10.000 / 10.000); <strong>10.000 küme de birbirinden farklıdır</strong>; referans çözüm bağımsız döngü çözümüyle tüm tohumlu vakalarda uyuştu. Tohumlu setin tek başına yakaladığı hata oranları §3.8'dedir; dilim sınırı hataları (<code>&lt;</code> ↔ <code>&lt;=</code>) tohumlu setle <strong>yakalanmaz</strong>, onları sabit gizli testler yakalar.</p>
+</details>
+<h4 id="b5-1-8-icerik-ci-dogrulayicisi-22-kural">1.8 İçerik CI doğrulayıcısı (22 kural)</h4>
+<p>İçerik deposuna giren her Spec için CI şunları çalıştırır; Otopark L1 için sonuç §9'dadır (22/22).</p><ol><li>Üst düzey alanlar tam, sıralı ve fazlası yok. 2. <code>id</code> biçimi. 3. <code>id = isletme-L{seviye}</code>. 4. Açık test sayısı. 5. Gizli test sayısı. 6. <code>seeded_tests.adet</code>. 7. Test kimlikleri benzersiz. 8. Her <code>beklenen</code> referans çözümle uyuşuyor. 9. Her <code>etiket</code> kategori fonksiyonuyla uyuşuyor. 10. Otopark L1'de testler KANON §5.1 tablosuyla birebir. 11. Sözleşme maddesi sayısı. 12. <code>netlestirme.min_soru ≥ 4</code>. 13. Hazır soru sayısı. 14. Her <code>edge_cases</code> girdisi en az bir geçerli teste bağlı. 15. İpucu merdiveninde dört kademe. 16. Kademeler boş değil. 17. En az 4 Savunma sorusu. 18. Rubrik ağırlıkları 50 + 30 + 20 = 100. 19. Rubrik eşiği KANON §9 (70). 20. <code>odul.xp</code> KANON §3.3. 21. Mutasyon kataloğundaki her mutasyon en az bir sabit testle yakalanıyor (yakalanmayan eşdeğer mutant katalogdan çıkar). 22. 10.000 sentetik oyuncuda her kategori sabit + tohumlu toplamda en az 2 vaka içeriyor.</li></ol>
+<h4 id="b5-1-9-istemci-ve-sunucu-gorunumu">1.9 İstemci ve sunucu görünümü</h4>
+<div class="tablewrap"><table><thead><tr><th>Alan</th><th>İstemci (editör, İş Emri)</th><th>Hakem (sunucu)</th><th>Özel paket</th></tr></thead><tbody><tr><td><code>baslik</code>, <code>imza</code>, <code>iskelet_kod</code></td><td class="nw">evet</td><td class="nw">evet</td><td class="nw">—</td></tr><tr><td><code>musteri_istegi.metin</code></td><td class="nw">evet</td><td class="nw">evet</td><td class="nw">—</td></tr><tr><td><code>netlestirme.sorular</code></td><td>soru metinleri; cevap ve ilgili <code>sozlesme_karti</code> maddesi soru sorulunca</td><td class="nw">evet</td><td class="nw">—</td></tr><tr><td class="nw"><code>sozlesme_karti</code></td><td>yalnızca açılmış maddeler</td><td class="nw">evet</td><td class="nw">—</td></tr><tr><td class="nw"><code>public_tests</code></td><td class="nw">tam</td><td class="nw">evet</td><td class="nw">—</td></tr><tr><td class="nw"><code>hidden_tests</code></td><td>adet ve kategori balonu</td><td class="nw">tam</td><td class="nw">—</td></tr><tr><td class="nw"><code>seeded_tests</code></td><td class="nw">adet</td><td>tam (üreteç)</td><td class="nw">—</td></tr><tr><td class="nw"><code>edge_cases</code></td><td class="nw">hayır</td><td class="nw">hayır</td><td>evet (CI)</td></tr><tr><td><code>ipucu_merdiveni</code></td><td>kademe istenince tek kademe</td><td class="nw">evet</td><td class="nw">—</td></tr><tr><td><code>savunma_sorulari</code></td><td>Savunma anında tek soru + rubrik (rubrik cevap kutusunun üstünde, KANON §9)</td><td class="nw">tam</td><td><code>kabul/ret</code> Kurul istemine girer</td></tr><tr><td><code>rubrik</code>, <code>odul</code></td><td class="nw">evet</td><td class="nw">evet</td><td class="nw">—</td></tr><tr><td>referans çözüm, mutasyonlar</td><td class="nw">hayır</td><td class="nw">hayır</td><td>evet (<code>challenge-private</code>)</td></tr></tbody></table></div>
+<h4 id="b5-1-10-staj-modu-uyumu">1.10 Staj modu uyumu</h4>
+<p>B2 §7.4'teki Staj modu (slotu olmayan oyuncu Ruhsat'lı işletmenin İş Emri'ni Akademi Atölyesi'nde kodlar) Spec'te değişiklik gerektirmez. Aynı dosya aynı hakemle çalışır; değişen yalnızca sunucu akışıdır: Müfettiş ve Savunma aynen koşar, <code>odul.xp</code> ödenir, gelir ve kasa hiç oluşmaz, tapu alınınca işletme anında Açık olur. Staj açılışında üretilen tohumlu küme Redis'te işletme–oyuncu çiftine bağlı kalır, böylece tapu sonrası ilk gece batch'i aynı kodu aynı referans tavanıyla çalıştırır.</p>
+</section>

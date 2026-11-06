@@ -1,0 +1,14 @@
+[
+  {"no": 1, "id": "zeynep_cs", "av": {"ten": 2, "sacStil": 6, "sacRenk": 1, "kiyafet": 1, "aksesuar": ["sapka"]},
+   "fark": "Kıyafet tek parça seçilir: kapüşonlu hırka yerine Turuncu hırka; kot ve spor ayakkabı ayrı katman değildir. Dalgalı omuz saçı Küt stiliyle temsil edilir; okul çantası (sırt) yoktur."},
+  {"no": 2, "id": "mert.k", "av": {"ten": 1, "sacStil": 0, "sacRenk": 1, "kiyafet": 0, "aksesuar": ["kasket", "kulaklik"]},
+   "fark": "Kıyafet tek parça (Tişört ve kot): kırmızı tişört, kargo pantolon ve bot ayrı değildir. Kasket ve kulaklık aksesuar olarak çizilir; Kod Kedisi (evcil) yoktur."},
+  {"no": 3, "id": "ela_c", "av": {"ten": 4, "sacStil": 3, "sacRenk": 4, "kiyafet": 5, "aksesuar": ["gozluk"]},
+   "fark": "Bakır saç Kızıl ile, sarı yağmurluk tek parça kıyafet olarak çizilir; etek ve çizme ayrı katman değildir. Baş katmanı B8'de de boştur."},
+  {"no": 4, "id": "kaan", "av": {"ten": 5, "sacStil": 0, "sacRenk": 5, "kiyafet": 2, "aksesuar": ["bere", "kolye"]},
+   "fark": "Neon Çırak seti (Premium) ve mor saç prototipte yoktur; en yakın seçimler Mavi saç, Mor kapüşon ve turkuaz Bere, neon kolye ise Kolye olarak çizilir."},
+  {"no": 5, "id": "ayse_kod", "av": {"ten": 1, "sacStil": 1, "sacRenk": 0, "kiyafet": 3, "aksesuar": ["baret"]},
+   "fark": "Otopark Ustası Şapkası (Nişan: altın çerçeve, animasyon, saç gizleme) yoktur; en yakın Baret ile çizilir. Saat ve Liman Martısı (evcil) yoktur; önlük tek parça kıyafettir."},
+  {"no": 6, "id": "berk_34", "av": {"ten": 3, "sacStil": 5, "sacRenk": 5, "kiyafet": 5, "aksesuar": ["kaptan", "rozet"]},
+   "fark": "Kaptan Şapkası ve Rozet İğnesi prototipte doğrudan vardır; sarı yağmurluk tek parça kıyafettir. Alet çantası (sırt) ve ayrı kot/bot katmanları yoktur."}
+]

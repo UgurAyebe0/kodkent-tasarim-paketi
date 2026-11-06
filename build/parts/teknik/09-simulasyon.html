@@ -1,0 +1,277 @@
+<!-- build_page.py ile üretildi -->
+<section id="simulasyon">
+<h2>İşletme simülasyonu ve ekonomi defteri</h2>
+<p>İşletme geliri deterministik tohumla üretilen günlük sentetik trafikten hesaplanır ve çift kayıtlı defter üzerinden yazılır. Bölüm trafik üretimini, referans çözüm tavanını, kasa ve hasadı, hesap planını ve işlem türlerini, denetimi anlatır; C# işlem örneği kapalıdır.</p>
+<p>KodKent'in imza mekaniği şudur: <strong>işletmenin geliri, oyuncunun kendi derlenmiş kodunun hesapladığı paradır</strong> (VİZYON §7). Bu bölüm, o cümlenin mühendislik karşılığıdır ve bir tasarım kuralına dayanır: <em>paranın hesaplandığı yer ile paranın yazıldığı yer arasında AI yoktur.</em> Gelir, sandbox çıktısı → <code>IncomeEngine</code> → defter hattından geçer; Kurul, Usta ve her türlü model bu hattın dışındadır.</p>
+<h3 id="b7-9-1-gunluk-sentetik-trafik-deterministik-tohum">9.1 Günlük sentetik trafik (deterministik tohum)</h3>
+<p>Her iş günü için her <strong>işletme türü ve seviyesi</strong> bir "günün trafiği" alır: n adet girdi (Otopark L1'de 12 araç, L2–L5'te 20/30/40/50: KANON §4). Girdi listesi bir tohumdan türetilir: <code>seed = HMAC-SHA256(kSeed, tür ‖ seviye ‖ iş günü ‖ "traffic-v1")[0..8]</code>, PRNG SplitMix64'tür (§8.7). Üç tasarım kararı aşağıdaki kodun çekirdeğidir:</p><ol><li><strong>Trafik, işletme başına değil tür/seviye başınadır.</strong> Aynı gün aynı türdeki bütün işletmeler aynı girdileri görür; böylece <em>aynı kod aynı geliri üretir</em> ve "en kazançlı işletme" panosu şans değil kod kalitesi ölçer. Ayrıca referans çözüm gün başına tür/seviye başına <strong>bir kez</strong> çalışır (100 çalıştırma/gün, 80.000 değil).</li><li><strong>Sistematik (tabakalı) örnekleme.</strong> Bantlar rastgele seçilseydi 12 araçlık bir günde %45/%35/%18/%2 dağılımı büyük sapmalar gösterirdi. Gün başına tek bir kayma <code>u</code> çekilir, i. araç <code>(i+u)/n</code> niceliğiyle banda atanır; böylece bant sayıları beklenen orana en yakın kalır ve %2'lik kuyruk (24 saati aşan kalış) günlerin ≈ %24'ünde bir araç üretir (12 × 0,02).</li><li><strong>Bant içi değer tekdüze</strong> rastgeledir (VİZYON varsayım 1). Bant sınırları ve etiketleri (<code>"2 saatten az kalanlar"</code>) her işletme için B5'tedir; kodda Otopark L1 örneği kullanılmıştır.</li></ol><p><strong>Doğrulama (10.000 iş günü, doğru çözümle):</strong> günlük toplam ortalama <strong>2.252 TL ≈ 225,2 B</strong> (KANON'un ≈ 2.220 TL / ≈ 220 B değerinin %1,4 üstü), standart sapma 252 TL (≈ %11), p5–p95 aralığı 1.900–2.750 TL, kuyruk günü oranı %23,4. Aynı (tür, seviye, gün) için üretim deterministiktir; aynı tohum iki kez aynı 12 girdiyi verir. Günlük dalgalanma (± %11) tasarım gereğidir: ekonomi panosunun "haftalık ortalama" ile izlenmesinin nedeni budur (B2 §10.5).</p>
+<h3 id="b7-9-2-isletme-yasam-dongusu">9.2 İşletme yaşam döngüsü</h3>
+<p>İşletme <strong>durum makinesi</strong> KANON §8'in beş durumuna dayanır; <code>satilik</code> arsanın durumudur (işletme satırı Tapu'ya kadar yoktur), geri kalan dört durum <code>world.businesses.status</code>'tadır.</p><div class="tablewrap"><table><thead><tr><th>Mevcut</th><th>Olay / koşul</th><th>Yeni</th><th>Etki</th></tr></thead><tbody><tr><td><em>(satır yok)</em> <code>satilik</code></td><td><code>POST /businesses</code> (Ruhsat 3/3 + seviye + fiyat + slot)</td><td class="nw"><code>kapali</code></td><td>Defter <code>BUSINESS_DEED_PURCHASE</code>; kasa satırı (hız 0); İş Emri (<code>{tür}-L1</code>) açılır; <code>BusinessPurchasedv1</code></td></tr><tr><td class="nw"><code>kapali</code></td><td>Tüm testler geçti <strong>ve</strong> Savunma geçti (Kurul ≥ 70)</td><td class="nw"><code>acik</code></td><td><code>opened_at</code>; açılış XP'si (300/600/1.200/2.000); ilk <code>business_run</code>; kasa hızı güncellenir; <code>BusinessOpenedv1</code></td></tr><tr><td class="nw"><code>kapali</code></td><td>Tüm testler geçti, Savunma başarısız</td><td class="nw"><code>deneme</code></td><td>Gelir ×0,5; <code>defense_retry_at = +24 sa</code>; XP'nin %50'si şimdi, kalanı Savunma geçince</td></tr><tr><td class="nw"><code>kapali</code></td><td>Derlendi ama gizli testlerden biri/bir kaçı kaldı</td><td class="nw"><code>deneme</code></td><td>Gelir ×0,5; şikâyet balonu kategori etiketiyle (gizli girdi söylenmez)</td></tr><tr><td class="nw"><code>kapali</code></td><td>Derleme hatası ya da hiçbir gizli test geçmedi</td><td class="nw"><code>kapali</code></td><td>Değişiklik yok; Türkçe hata paneli</td></tr><tr><td><code>acik</code> / <code>deneme</code></td><td>Yeni gönderim: tümü geçti</td><td><code>acik</code> (Deneme'deyse Savunma geçince)</td><td>Yeniden hesap <code>revision</code> +1</td></tr><tr><td><code>acik</code> / <code>deneme</code></td><td>Yeni gönderim: bazı gizli testler kaldı</td><td class="nw"><code>deneme</code></td><td>Gelir ×0,5</td></tr><tr><td><code>acik</code> / <code>deneme</code></td><td>Yeni gönderim: derlenmiyor ya da gizli testlerin tamamı kırmızı</td><td class="nw"><code>kararmis</code></td><td>Gelir 0; tabela kararır; <strong>kasada biriken Bayt kaybolmaz</strong></td></tr><tr><td class="nw"><code>kararmis</code></td><td>Düzeltme gönderimi testleri geçti</td><td><code>acik</code> / <code>deneme</code></td><td>Sonuca göre</td></tr><tr><td class="nw"><code>deneme</code></td><td><code>defense_retry_at</code> geçti, yeni Savunma geçti</td><td class="nw"><code>acik</code></td><td>Kalan açılış XP'si</td></tr></tbody></table></div><p><strong>Tapu işlemi (tek veritabanı işlemi, oyuncu danışma kilidi altında):</strong> (1) Ruhsat <code>3/3</code>, seviye ≥ açılış seviyesi, <code>(owner_id, kind)</code> benzersizliği, slot <code>count(businesses) &lt; 1 + ⌊seviye/6⌋</code>; (2) <code>BUSINESS_DEED_PURCHASE</code> defter yazımı (bakiye yetersizse <code>INSUFFICIENT_FUNDS</code>); (3) Ara Sokak/parsel ataması (B1 §6.1: arkadaş → kohort → en dolu sokak); (4) <code>businesses</code> + <code>business_vaults</code> satırları; (5) outbox: <code>BusinessPurchasedv1</code>. Aralarında hiçbir ağ çağrısı yoktur; hata hâlinde hepsi geri alınır.</p><p><strong>Yükseltme iki aşamalıdır:</strong> <code>POST …/upgrades</code> fiyatı öder (<code>BUSINESS_UPGRADE</code>) ve yeni İş Emri'ni açar (<code>upgrade_to = level + 1</code>); <em>seviye</em>, yeni seviyenin kodu testleri ve Savunma'yı geçince artar. Böylece oyuncu, yeni müşteri isteğini kodlarken eski seviyenin gelirini kaybetmez. Ders kapısı (B2 §7.3, ör. Otopark L2 → Ders 2.1) ödemeden önce denetlenir.</p>
+<h3 id="b7-9-3-gelir-hesabi-ve-referans-tavani">9.3 Gelir hesabı ve referans tavanı</h3>
+<p>B2 §8.2'nin formülü, kodda tek bir saf fonksiyondur (<code>IncomeEngine.Compute</code>, §9.4'teki blok):</p><pre class="code" data-lang="txt"><code>günlükBayt = min(oyuncuTL, referansTL) ÷ 10 × durum × mesai × lonca
+oyuncuTL   = Σ max(0, oyuncuKodu(girdiᵢ))      istisna / zaman aşımı → 0 TL (+ şikâyet "hata_veriyor")
+referansTL = Σ referans(girdiᵢ)                  güvenilir tarafta hesaplanır
+durum      = açık 1,0 · deneme 0,5 · kapalı/kararmış 0
+mesai      = 1,15 (öğrenme eylemi yapılan gün)   B2 önerisi, varsayılan KAPALI (KANON temeli ×1,0)
+lonca      = 1 + 0,02 × min(görev bitiren üye, 5) B2 önerisi, v1.1, varsayılan KAPALI</code></pre><p><strong>Ne zaman hesaplanır?</strong> (1) <em>Açılışta ve her kabul edilen kod güncellemesinde</em> (aynı gün içinde en çok 5 yeniden hesap, <code>revision</code> 2…6; <strong>(B7 önerisi)</strong>, sandbox maliyetini sınırlar); (2) <em>her gece 03:00'te</em> tüm Açık/Deneme işletmeler için (§7.6). Hesap <strong>ileri dönüktür</strong>: yeni <code>daily_bayt</code> kasanın hızını o andan itibaren değiştirir, geçmiş saatler eski hızla kalır (B2 ilke 9). <strong>Sapma şikâyete dönüşür:</strong> <code>oyuncuTL &gt; referansTL</code> → "fazla ücret", <code>&lt;</code> → "eksik ücret"; balonun kategori etiketi, farkı en çok üreten trafik bandının adıdır ("2–6 saat arası kalanlar"), gizli girdi asla söylenmez.</p><p>Doğrulanmış örnekler (Otopark L1, aynı günün 12 girdisi; kod <code>IncomeEngine</code> ile çalıştırıldı):</p><div class="tablewrap"><table><thead><tr><th>Oyuncu kodu</th><th class="num">oyuncuTL</th><th class="num">referansTL</th><th class="num">Tavanlı TL</th><th>Durum</th><th class="num">Günlük Bayt</th><th>Şikâyet / etiket</th></tr></thead><tbody><tr><td class="nw">Doğru</td><td class="num nw">1.880</td><td class="num nw">1.880</td><td class="num nw">1.880</td><td class="nw">açık</td><td class="num nw">188</td><td class="nw">—</td></tr><tr><td>6–24 saat dilimini 240 yazmış</td><td class="num nw">1.860</td><td class="num nw">1.880</td><td class="num nw">1.860</td><td class="nw">açık</td><td class="num nw">186</td><td><code>eksik_ucret</code> / "6–24 saat arası kalanlar"</td></tr><tr><td>Her girdiye +50 TL</td><td class="num nw">2.480</td><td class="num nw">1.880</td><td class="num nw"><strong>1.880</strong></td><td class="nw">açık</td><td class="num nw"><strong>188</strong></td><td><code>fazla_ucret</code>: fazla ücret gelire dönmez</td></tr><tr><td>200 dakikadan uzun 4 girdide istisna</td><td class="num nw">980</td><td class="num nw">1.880</td><td class="num nw">980</td><td class="nw">açık</td><td class="num nw">98</td><td><code>hata_veriyor</code> / "6–24 saat arası kalanlar"</td></tr><tr><td>Doğru, <strong>deneme</strong> modu</td><td class="num nw">1.880</td><td class="num nw">1.880</td><td class="num nw">1.880</td><td class="nw">deneme</td><td class="num nw">94</td><td>— (×0,5)</td></tr></tbody></table></div>
+<h3 id="b7-9-4-kasa-ve-hasat">9.4 Kasa ve hasat</h3>
+<p>Kasa <strong>tembel hesaplanır</strong> (mühendislik tercihi): saatlik tik, 100k işletme için saatte 100k güncelleme demektir; oysa kasa bir <em>doğrusal fonksiyondur</em>. Saklanan dörtlü <code>(balance_t0, t0, rate_per_hour, cap_hours)</code> ile her an <code>balance(now) = max(balance_t0, min(rate × cap_hours, balance_t0 + rate × (now − t0)))</code> hesaplanır. Hız değişimi (yeni gün hesabı, durum değişimi, seviye) önce eski hızla <em>settle</em> eder, sonra yeni hızı yazar. <code>max(balance_t0, …)</code> terimi, hız ya da tavan düşse bile birikmiş Bayt'ın kaybolmamasını garanti eder ("kayıp yok", KANON §4/B2 §8.3). <strong>Hasat:</strong> tam Bayt ödenir (<code>VAULT_COLLECT</code>), kesir kasada kalır. "Kasa doldu" bildirimi, <code>FullAt</code> ile hesaplanan ana <em>gecikmeli ileti</em> olarak kuyruğa konur (hız değişince yeni ileti <code>coalesceKey</code> ile eskiyi ezer); günde en çok 1 push (B2 §8.3).</p><p>Doğrulanmış sayılar: Otopark L1 hızı 220 ÷ 24 = <strong>9,1667 B/sa</strong>; 8. saatte kasa <strong>73,3333</strong>, 20. saatte hâlâ 73,3333 (dolu kasa üretimi durdurur); hasat <strong>73 B</strong> öder, <strong>0,3333</strong> kasada kalır. 4. saatte L2 hızına (350 ÷ 24 = 14,5833) geçilirse 8. saatte kasa 36,667 + 58,333 = <strong>95,00</strong>; hız 20'den 10'a düşerse 120 B'lik birikmiş kasa yeni tavan 80'in üstünde olsa da <strong>120'de</strong> kalır.</p><pre class="code long" data-lang="cs" tabindex="0"><code>// [derlenir] Income.cs
+using System.Buffers.Binary;
+using System.Security.Cryptography;
+using System.Text;
+using KodKent.Challenge;
+
+namespace KodKent.World;
+
+public enum BusinessStatus { Kapali, Deneme, Acik, Kararmis }
+
+public sealed record TrafficBand(string Label, double Weight, long Min, long Max);
+public sealed record TrafficProfile(int Count, IReadOnlyList&lt;TrafficBand&gt; Bands);
+
+/// &lt;summary&gt;Günlük sentetik trafik: aynı (tür, seviye, iş günü) için her çalıştırmada AYNI girdi listesi (§9.1).&lt;/summary&gt;
+public static class DailyTraffic
+{
+    /// &lt;summary&gt;Otopark L1 (KANON §4/§5): 12 araç; %45 &amp;lt; 2 sa, %35 2–6 sa, %18 6–24 sa, %2 &amp;gt; 24 sa. Bant sınırları ve etiketler B5'te kesinleşir.&lt;/summary&gt;
+    public static readonly TrafficProfile OtoparkL1 = new(12,
+    [
+        new("2 saatten az kalanlar", 0.45, 1, 119),
+        new("2–6 saat arası kalanlar", 0.35, 120, 360),
+        new("6–24 saat arası kalanlar", 0.18, 361, 1440),
+        new("24 saati aşan kalışlar", 0.02, 1441, 4320),
+    ]);
+
+    /// &lt;summary&gt;seed = HMAC-SHA256(kSeed, tür ‖ seviye ‖ iş günü ‖ "traffic-v1")[0..8]. "Günün trafiği" aynı tür ve seviyedeki TÜM işletmeler için ortaktır:
+    /// aynı kod aynı geliri üretir (liderlik adil), referans çözüm gün başına tür/seviye başına bir kez çalışır.&lt;/summary&gt;
+    public static ulong Seed(byte[] kSeed, string kind, int level, DateOnly day)
+    {
+        var msg = Encoding.UTF8.GetBytes($"{kind}|{level}|{day:yyyy-MM-dd}|traffic-v1");
+        return BinaryPrimitives.ReadUInt64BigEndian(HMACSHA256.HashData(kSeed, msg));
+    }
+
+    /// &lt;summary&gt;Sistematik (tabakalı) örnekleme: gün başına tek kayma u; i. araç (i+u)/n niceliğiyle banda atanır.
+    /// Bant sayıları beklenen orana en yakın kalır; %2'lik kuyruk günlerin ≈ %24'ünde bir araç üretir (12 × 0,02).&lt;/summary&gt;
+    public static IReadOnlyList&lt;(int Input, string Label)&gt; Generate(TrafficProfile p, ulong seed)
+    {
+        var rng = new SeededTests.SplitMix64(seed);
+        double u = (rng.Next() &gt;&gt; 11) * (1.0 / (1UL &lt;&lt; 53));                              // [0,1)
+        double total = p.Bands.Sum(b =&gt; b.Weight), run = 0; var cum = new double[p.Bands.Count];
+        for (int i = 0; i &lt; cum.Length; i++) cum[i] = run += p.Bands[i].Weight / total;
+        var cars = new List&lt;(int, string)&gt;(p.Count);
+        for (int i = 0; i &lt; p.Count; i++)
+        {
+            int k = Array.FindIndex(cum, c =&gt; (i + u) / p.Count &lt; c); if (k &lt; 0) k = cum.Length - 1;
+            cars.Add(((int)rng.NextInRange(p.Bands[k].Min, p.Bands[k].Max), p.Bands[k].Label));
+        }
+        return cars;
+    }
+}
+
+public sealed record IncomeOptions(bool MesaiEnabled = false, bool LoncaEnabled = false);   // B2 önerisi; KANON temeli ×1,0
+public sealed record RunResult(long PlayerTl, long ReferenceTl, long CappedTl, decimal StatusFactor, decimal DailyBayt, string? Complaint, string? ComplaintHint);
+
+/// &lt;summary&gt;B2 §8.2 formülünün üretim hâli. AI bu sınıfa ULAŞAMAZ; girdi yalnızca sandbox çıktısıdır.&lt;/summary&gt;
+public static class IncomeEngine
+{
+    public const decimal TlPerBayt = 10m;                                                  // KANON §1: 10 TL = 1 B
+
+    public static decimal StatusFactor(BusinessStatus s) =&gt; s switch { BusinessStatus.Acik =&gt; 1m, BusinessStatus.Deneme =&gt; 0.5m, _ =&gt; 0m };
+
+    /// &lt;param name="player"&gt;Oyuncu kodunun her trafik girdisi için TL çıktısı; null = istisna/zaman aşımı&lt;/param&gt;
+    /// &lt;param name="reference"&gt;Referans çözümün aynı girdiler için çıktısı (güvenilir tarafta hesaplanır)&lt;/param&gt;
+    public static RunResult Compute(BusinessStatus status, IReadOnlyList&lt;long?&gt; player, IReadOnlyList&lt;long&gt; reference, IReadOnlyList&lt;string&gt; labels,
+                                    bool learnedToday = false, int guildFinishers = 0, IncomeOptions? opt = null)
+    {
+        long p = 0, r = 0; int errors = 0; var diff = new Dictionary&lt;string, long&gt;();
+        for (int i = 0; i &lt; reference.Count; i++)
+        {
+            long got = player[i] is { } v ? Math.Max(0, v) : 0;                            // istisna → 0 TL, şikâyet balonu
+            if (player[i] is null) errors++;
+            p += got; r += reference[i];
+            diff[labels[i]] = diff.GetValueOrDefault(labels[i]) + Math.Abs(got - reference[i]);
+        }
+        long capped = Math.Min(p, r);                                                      // referans tavanı: fazla ücret gelire dönmez
+        decimal mesai = opt?.MesaiEnabled == true &amp;&amp; learnedToday ? 1.15m : 1m;           // B2 önerisi (varsayılan kapalı)
+        decimal lonca = opt?.LoncaEnabled == true ? 1m + 0.02m * Math.Min(guildFinishers, 5) : 1m;
+        decimal factor = StatusFactor(status);
+        decimal bayt = Math.Round(capped / TlPerBayt * factor * mesai * lonca, 4);
+        string? complaint = errors &gt; 0 ? "hata_veriyor" : p &gt; r ? "fazla_ucret" : p &lt; r ? "eksik_ucret" : null;
+        string? hint = complaint is null ? null : diff.OrderByDescending(kv =&gt; kv.Value).First().Key;   // kategori etiketi; gizli girdi DEĞİL
+        return new RunResult(p, r, capped, factor, bayt, complaint, hint);
+    }
+}
+
+/// &lt;summary&gt;Kasa: tembel hesap. Saklanan (BalanceT0, T0, Rate, Cap) üçlüsünden her an Balance(now) hesaplanır; saatlik yazma yok.&lt;/summary&gt;
+public sealed record VaultState(decimal BalanceT0, DateTimeOffset T0, decimal RatePerHour, int CapHours);
+
+public static class Vault
+{
+    public static decimal Balance(VaultState v, DateTimeOffset now)
+    {
+        decimal hours = Math.Max(0m, (decimal)(now - v.T0).Ticks / TimeSpan.TicksPerHour);
+        decimal cap = v.RatePerHour * v.CapHours;                                          // 8 saatlik üretim (KANON); Büyük Kasa 12 (B2 önerisi)
+        return Math.Max(v.BalanceT0, Math.Min(cap, v.BalanceT0 + v.RatePerHour * hours));  // dolu kasa üretimi durdurur; tavan düşse de birikmiş Bayt kaybolmaz
+    }
+
+    public static VaultState Settle(VaultState v, DateTimeOffset now) =&gt; v with { BalanceT0 = Balance(v, now), T0 = now };
+
+    /// &lt;summary&gt;Hız değişiminde (yeni gün hesabı, durum değişimi, seviye) önce eski hızla "settle" edilir: değişiklik İLERİ DÖNÜKTÜR.&lt;/summary&gt;
+    public static VaultState SetRate(VaultState v, DateTimeOffset now, decimal ratePerHour, int capHours) =&gt;
+        Settle(v, now) with { RatePerHour = ratePerHour, CapHours = capHours };
+
+    /// &lt;summary&gt;Hasat: tam Bayt ödenir, kesir kasada kalır (hiçbir yuvarlama oyuncu aleyhine kayıp üretmez, B2 §8.3).&lt;/summary&gt;
+    public static (long Payout, VaultState State) Collect(VaultState v, DateTimeOffset now)
+    {
+        var s = Settle(v, now); long pay = (long)Math.Floor(s.BalanceT0);
+        return (pay, s with { BalanceT0 = s.BalanceT0 - pay });
+    }
+
+    /// &lt;summary&gt;"Kasa doldu" bildirimini zamanlamak için: kasanın dolacağı an (zaten doluysa null).&lt;/summary&gt;
+    public static DateTimeOffset? FullAt(VaultState v, DateTimeOffset now)
+    {
+        var s = Settle(v, now); decimal cap = s.RatePerHour * s.CapHours;
+        if (s.RatePerHour &lt;= 0 || s.BalanceT0 &gt;= cap) return null;
+        return now.AddHours((double)((cap - s.BalanceT0) / s.RatePerHour));
+    }
+}</code></pre>
+<h3 id="b7-9-5-cift-kayitli-defter-hesap-plani-ve-islem-turleri">9.5 Çift kayıtlı defter: hesap planı ve işlem türleri</h3>
+<p>Defter, bakiyeyi değiştiren <strong>tek</strong> yoldur. Kurallar: her işlemde her para biriminin toplamı sıfırdır; oyuncu cüzdanı negatif olamaz; sistem cüzdanları (<code>faucet.*</code> kaynak, <code>sink.*</code> gider) bakiye taşımaz (<code>track_balance=false</code>); satır ve başlık değiştirilemez, düzeltme <code>REVERSAL</code> ile yapılır; <strong>oyuncudan oyuncuya işlem türü yoktur</strong> (KANON §4: transfer, hediye, ticaret, bahis yok) ve Çip→Bayt dönüşümü yoktur (para birimi çiftleri yalnızca aynı birim içinde dengelenir). Her türün <strong>doğal idempotency anahtarı</strong> vardır: aynı ödülün iki kez yazılması veri düzeyinde imkânsızdır, "tekrar 0 XP/Bayt" kuralı böylece bir değişmezdir.</p><div class="tablewrap"><table><thead><tr><th class="num">#</th><th><code>tx_type</code></th><th>Birim</th><th>Borç (−) → Alacak (+)</th><th>Doğal anahtar</th><th>Kural / kaynak</th></tr></thead><tbody><tr><td class="num nw">1</td><td class="nw"><code>QUEST_REWARD</code></td><td class="nw">B</td><td><code>faucet.quest</code> → oyuncu</td><td><code>qr:{oyuncu}:{görev}</code></td><td>İlk tamamlama; tekrar 0 (KANON §3.3/§4)</td></tr><tr><td class="num nw">2</td><td><code>LICENCE_INCENTIVE</code></td><td class="nw">B</td><td><code>faucet.municipal</code> → oyuncu</td><td><code>li:{oyuncu}:{tür}</code></td><td>Ruhsat tamam: +100 B Belediye teşviki (KANON §4)</td></tr><tr><td class="num nw">3</td><td class="nw"><code>OPENING_RIBBON</code></td><td class="nw">B</td><td><code>faucet.opening</code> → oyuncu</td><td class="nw"><code>or:{oyuncu}</code></td><td>İlk Açılış 100 B (B2 §5.2, B2 önerisi)</td></tr><tr><td class="num nw">4</td><td><code>DAILY_REVIEW_REWARD</code></td><td class="nw">B</td><td><code>faucet.review</code> → oyuncu</td><td><code>dr:{oyuncu}:{iş günü}</code></td><td>20 B; seri ≥ 7 → ×1,5 (KANON §4)</td></tr><tr><td class="num nw">5</td><td><code>BUG_REPORT_REWARD</code></td><td class="nw">B</td><td><code>faucet.bugreport</code> → oyuncu</td><td><code>br:{oyuncu}:{dosya}</code></td><td>40–120 B, günde 3</td></tr><tr><td class="num nw">6</td><td><code>DISTRICT_EXAM_REWARD</code></td><td>B + Çip</td><td><code>faucet.exam</code> → oyuncu</td><td><code>ex:{oyuncu}:{semt}</code></td><td>500 B + 10 Çip: iki para birimi, aynı işlem, her biri ayrı dengelenir</td></tr><tr><td class="num nw">7</td><td class="nw"><code>LEAGUE_REWARD</code></td><td class="nw">B</td><td><code>faucet.league</code> → oyuncu</td><td><code>lg:{oyuncu}:{hafta}</code></td><td>0–300 B (Pazar 21:00)</td></tr><tr><td class="num nw">8</td><td><code>APPLAUSE_REWARD</code></td><td class="nw">B</td><td><code>faucet.applause</code> → sahip</td><td><code>ap:{sahip}:{iş günü}</code></td><td>Günlük <strong>toplu</strong> işlem: 2 B × alkış, en çok 40 B (satır sayısını düşürür)</td></tr><tr><td class="num nw">9</td><td class="nw"><code>INVITE_REWARD</code></td><td class="nw">B</td><td><code>faucet.invite</code> → davet eden + edilen</td><td class="nw"><code>iv:{kod}</code></td><td>100 B iki tarafa; ilk Bayt sonrası; ayda 5 (B2 §5.2)</td></tr><tr><td class="num nw">10</td><td class="nw"><code>VAULT_COLLECT</code></td><td class="nw">B</td><td><code>faucet.business</code> → oyuncu</td><td><code>vc:{işletme}:{toplama}</code></td><td>Tam Bayt; kesir kasada</td></tr><tr><td class="num nw">11</td><td><code>BUSINESS_DEED_PURCHASE</code></td><td class="nw">B</td><td>oyuncu → <code>sink.deed</code></td><td><code>deed:{oyuncu}:{tür}</code></td><td>300…120.000 B (KANON §5)</td></tr><tr><td class="num nw">12</td><td><code>BUSINESS_UPGRADE</code></td><td class="nw">B</td><td>oyuncu → <code>sink.upgrade</code></td><td><code>up:{işletme}:{seviye}</code></td><td>500 / 1.200 / 2.500 / 5.000 B</td></tr><tr><td class="num nw">13</td><td><code>BUSINESS_RENAME</code></td><td class="nw">B</td><td>oyuncu → <code>sink.rename</code></td><td><code>rn:{işletme}:{n}</code></td><td>200 B</td></tr><tr><td class="num nw">14</td><td><code>MARKET_PURCHASE</code></td><td class="nw">B</td><td>oyuncu → <code>sink.market</code></td><td><code>mp:{oyuncu}:{sku}</code></td><td>30–800 B kıyafet, 40–400 B eşya</td></tr><tr><td class="num nw">15</td><td><code>BOUTIQUE_PURCHASE</code></td><td class="nw">Çip</td><td>oyuncu → <code>sink.boutique</code></td><td><code>bp:{oyuncu}:{sku}</code></td><td>Yalnızca <code>premium</code> (şema <code>CHECK</code>)</td></tr><tr><td class="num nw">16</td><td class="nw"><code>ROOM_UPGRADE</code></td><td class="nw">B</td><td>oyuncu → <code>sink.room</code></td><td><code>ru:{oyuncu}:{tip}</code></td><td>Daire 2.000, Çatı Katı 6.000</td></tr><tr><td class="num nw">17</td><td class="nw"><code>HANDLE_CHANGE</code></td><td class="nw">B</td><td>oyuncu → <code>sink.identity</code></td><td><code>hc:{oyuncu}:{n}</code></td><td>500 B</td></tr><tr><td class="num nw">18</td><td><code>STREAK_FREEZER_PURCHASE</code></td><td class="nw">B</td><td>oyuncu → <code>sink.freezer</code></td><td><code>sf:{oyuncu}:{n}</code></td><td>50 B</td></tr><tr><td class="num nw">19</td><td><code>MUNICIPAL_DONATION</code></td><td class="nw">B</td><td>oyuncu → <code>sink.municipal</code></td><td><code>md:{oyuncu}:{proje}:{n}</code></td><td>100/500/2.000 B (B2 §6.3 önerisi)</td></tr><tr><td class="num nw">20</td><td class="nw"><code>CHIP_TOPUP</code></td><td class="nw">Çip</td><td><code>faucet.psp</code> → oyuncu</td><td><code>ct:{sağlayıcı}:{ref}</code></td><td>PSP onayı + imzalı webhook sonrası</td></tr><tr><td class="num nw">21</td><td class="nw"><code>CHIP_REFUND</code></td><td class="nw">Çip</td><td>oyuncu → <code>sink.refund</code></td><td class="nw"><code>cr:{sipariş}</code></td><td>14 gün, harcanmamış (B2 Açık Soru 10)</td></tr><tr><td class="num nw">22</td><td><code>ADMIN_ADJUSTMENT</code></td><td>B / Çip</td><td><code>faucet.adjust</code> ↔ oyuncu</td><td class="nw"><code>adj:{düzeltme}</code></td><td>Dört göz (<code>admin_adjustments</code>), gerekçe zorunlu</td></tr><tr><td class="num nw">23</td><td><code>ERASURE_WRITEOFF</code></td><td>B + Çip</td><td>oyuncu → <code>sink.writeoff</code></td><td class="nw"><code>er:{oyuncu}</code></td><td>Hesap silme: bakiye yazılır (§11.6)</td></tr><tr><td class="num nw">24</td><td class="nw"><code>REVERSAL</code></td><td class="nw">aynı</td><td>ters satırlar</td><td><code>rev:{asıl işlem}</code></td><td>Yalnızca sistem/yönetici, bir kez</td></tr></tbody></table></div><p>Bir işlemde birden çok kalem olabilir ve <strong>kaynak etiketi</strong> (<code>tx_type</code> + <code>ref</code>) ekonomi panosunun veri kaynağıdır: B2 §15'in <code>BaytKazanildi{kaynak, miktar}</code> ve <code>BaytHarcandi{lavabo, miktar}</code> olayları <code>LedgerPostedv1</code>'den türetilir, ayrı ölçüm yazılmaz.</p>
+<h3 id="b7-9-6-denetim-ve-mutabakat">9.6 Denetim ve mutabakat</h3>
+<p>Üç katmanlı güvence vardır: (1) <em>veritabanı:</em> dengesiz işlem COMMIT'te reddedilir, satır değiştirilemez; (2) <em>uygulama:</em> doğal anahtar + oyuncu kilidi; (3) <em>gece denetimi:</em> <code>ledger-reconcile</code> (05:00 TR) aşağıdaki beş sorguyu <code>kk_readonly</code> rolüyle ve <code>REPEATABLE READ READ ONLY</code> işleminde koşturur; <strong>herhangi bir satır dönerse P1 alarmıdır</strong> ve ekonomi yazma yolları (hasat dışı ödüller) otomatik durdurulabilir (kill-switch).</p><pre class="code" data-lang="sql"><code>-- K1: dengesiz işlem (beklenen: 0 satır)
+SELECT tx_id, currency, sum(amount) AS fark
+  FROM economy.ledger_entries
+ WHERE created_at &gt;= $1 AND created_at &lt; $2
+ GROUP BY tx_id, currency HAVING sum(amount) &lt;&gt; 0;
+
+-- K2: önbellekli bakiye ≠ satır toplamı (beklenen: 0 satır)
+SELECT w.id, w.balance, x.toplam
+  FROM economy.wallets w
+  JOIN LATERAL (SELECT COALESCE(sum(e.amount), 0) AS toplam FROM economy.ledger_entries e WHERE e.wallet_id = w.id) x ON true
+ WHERE w.track_balance AND w.balance &lt;&gt; x.toplam;
+
+-- K3: küresel denge: tüm cüzdanlar (oyuncu + sistem), para birimi başına toplam 0 (beklenen: 0 satır)
+SELECT currency, sum(amount) FROM economy.ledger_entries GROUP BY currency HAVING sum(amount) &lt;&gt; 0;
+
+-- K4: slot ihlali: işletme sayısı 1 + ⌊seviye/6⌋'yı aşan oyuncu (beklenen: 0 satır)
+SELECT b.owner_id, count(*) AS adet, pr.level
+  FROM world.businesses b JOIN progress.player_progress pr ON pr.player_id = b.owner_id
+ GROUP BY b.owner_id, pr.level HAVING count(*) &gt; 1 + pr.level / 6;
+
+-- K5: ödülü verilmemiş tamamlanmış görev (beklenen: 0 satır)
+SELECT p.player_id, p.quest_id
+  FROM quest.quest_progress p JOIN quest.quests q ON q.id = p.quest_id
+ WHERE p.state = 'completed' AND p.reward_tx_id IS NULL AND q.reward_bayt &gt; 0 AND NOT q.repeatable;</code></pre><p><strong>Mühürleme.</strong> <code>ledger-digest-seal</code> (05:30) günün özetini hesaplar: <code>sha256 = SHA-256(prev_sha256 ‖ kanonik(günün satırları, id sırasıyla))</code> ve <code>ledger_daily_digests</code>'e zincirleme yazar; özet ayrıca nesne deposuna <strong>WORM (Object Lock, 10 yıl)</strong> olarak kopyalanır. Soğuk depoya taşınan bölümün bütünlüğü bu zincirle doğrulanır; zincirde kırılma, kurcalama alarmıdır. <strong>Dört göz:</strong> <code>ADMIN_ADJUSTMENT</code> iki farklı yöneticinin onayını (<code>requested_by ≠ approved_by</code>, şema <code>CHECK</code>) ve <code>platform.audit_log</code> kaydını gerektirir.</p>
+<h3 id="b7-9-7-islem-ornegi-c-idempotent-defter-yazimi">9.7 İşlem örneği (C#): idempotent defter yazımı</h3>
+<p><code>LedgerService.PostAsync</code> yukarıdaki kuralların uygulamasıdır. <strong>İzolasyon notu:</strong> işlem <code>READ COMMITTED</code>'dır. Gerekçe: (1) çakışan yazarlar bakiye satırında <code>SELECT … FOR UPDATE</code> ile seri hâle gelir; (2) cüzdanlar <code>id</code> sırasıyla kilitlenir, kilit sırası sabit olduğundan kilitlenme (deadlock) oluşmaz; (3) tekrar, <code>idempotency_key</code> benzersizliği ve <code>ON CONFLICT DO NOTHING</code> ile engellenir. <code>SERIALIZABLE</code> gerekmez ve istenmez (yeniden deneme fırtınası): <em>çok satırlı kararlar</em> (slot sayımı, Ruhsat doğrulaması, çifte harcama) <strong>oyuncu başına işlem kapsamlı danışma kilidi</strong> (<code>pg_advisory_xact_lock</code>) altında alınır; bir oyuncunun komutları sıralanır, oyuncular arasında çekişme yoktur. Raporlama ve mutabakat sorguları <code>REPEATABLE READ READ ONLY</code> kullanır.</p><pre class="code long" data-lang="cs" tabindex="0"><code>// [derlenir] LedgerService.cs
+using System.Data;
+using Npgsql;
+
+namespace KodKent.Economy;
+
+public sealed record Posting(Guid WalletId, string Currency, long Amount);       // + cüzdana giren, − çıkan
+
+public sealed record PostRequest(
+    string TxType, string IdempotencyKey, DateOnly BusinessDay, string ActorType, Guid? ActorId,
+    IReadOnlyList&lt;Posting&gt; Postings, string? RefType = null, string? RefId = null, string MetaJson = "{}",
+    Guid? PlayerLock = null);                                                     // oyuncu kilidi: aynı oyuncunun komutlarını sıraya koyar
+
+public sealed record PostResult(Guid TxId, bool Replayed);
+
+public sealed class LedgerException(string code, string message) : Exception(message) { public string Code =&gt; code; }
+
+public static class Postings
+{
+    public static Posting[] Transfer(Guid from, Guid to, string currency, long amount) =&gt;
+        [new(from, currency, -amount), new(to, currency, amount)];
+}
+
+public sealed class LedgerService(NpgsqlDataSource db)
+{
+    /// &lt;summary&gt;
+    /// İdempotent, dengeli, değişmez defter yazımı. İZOLASYON: READ COMMITTED yeterlidir, çünkü (1) çakışan yazarlar bakiye satırında
+    /// FOR UPDATE ile seri hâle gelir, (2) kilit sırası sabittir (kilitlenme yok), (3) tekrar, benzersiz anahtarla engellenir.
+    /// SERIALIZABLE gerekmez: çok satırlı kararlar (slot, Ruhsat) oyuncu danışma kilidi altında alınır.
+    /// &lt;/summary&gt;
+    public async Task&lt;PostResult&gt; PostAsync(PostRequest r, CancellationToken ct)
+    {
+        Validate(r);
+        await using var conn = await db.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(IsolationLevel.ReadCommitted, ct);
+
+        // 1) Oyuncu başına işlem kapsamlı danışma kilidi (PgBouncer işlem modunda güvenli)
+        if (r.PlayerLock is { } pid)
+            await using (var lk = Cmd(conn, tx, "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", pid.ToString()))
+                await lk.ExecuteNonQueryAsync(ct);
+
+        // 2) İdempotent başlık: aynı anahtar ikinci kez gelirse ON CONFLICT satır döndürmez → önceki işlem "tekrar" olarak döner
+        var txId = Guid.CreateVersion7();
+        Guid? inserted;
+        await using (var ins = Cmd(conn, tx, """
+            INSERT INTO economy.ledger_transactions (id, tx_type, idempotency_key, business_day, ref_type, ref_id, actor_type, actor_id, meta)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+            ON CONFLICT (idempotency_key) DO NOTHING
+            RETURNING id
+            """, txId, r.TxType, r.IdempotencyKey, r.BusinessDay, r.RefType, r.RefId, r.ActorType, r.ActorId, r.MetaJson))
+            inserted = (Guid?)await ins.ExecuteScalarAsync(ct);
+
+        if (inserted is null)
+        {
+            await using var prev = Cmd(conn, tx, "SELECT id FROM economy.ledger_transactions WHERE idempotency_key = $1", r.IdempotencyKey);
+            var existing = (Guid)(await prev.ExecuteScalarAsync(ct))!;
+            await tx.CommitAsync(ct);
+            return new PostResult(existing, Replayed: true);
+        }
+
+        // 3) Cüzdanları id sırasıyla kilitle ve oku
+        var ids = r.Postings.Select(p =&gt; p.WalletId).Distinct().OrderBy(x =&gt; x).ToArray();
+        var wallets = new Dictionary&lt;Guid, (long Balance, bool Track, bool AllowNegative, string Currency)&gt;();
+        await using (var sel = Cmd(conn, tx,
+            "SELECT id, balance, track_balance, allow_negative, currency FROM economy.wallets WHERE id = ANY($1) ORDER BY id FOR UPDATE", ids))
+        await using (var rd = await sel.ExecuteReaderAsync(ct))
+            while (await rd.ReadAsync(ct))
+                wallets[rd.GetGuid(0)] = (rd.GetInt64(1), rd.GetBoolean(2), rd.GetBoolean(3), rd.GetString(4));
+        if (wallets.Count != ids.Length) throw new LedgerException("WALLET_NOT_FOUND", "Cüzdan bulunamadı");
+
+        // 4) Satırları yaz, bakiyeleri uygula (takip edilen cüzdanlarda), yetersiz bakiyeyi reddet
+        foreach (var p in r.Postings)
+        {
+            var w = wallets[p.WalletId];
+            if (w.Currency != p.Currency) throw new LedgerException("CURRENCY_MISMATCH", "Para birimi cüzdanla uyuşmuyor");
+            long? after = null;
+            if (w.Track)
+            {
+                long nb = w.Balance + p.Amount;
+                if (nb &lt; 0 &amp;&amp; !w.AllowNegative) throw new LedgerException("INSUFFICIENT_FUNDS", $"Gerekli {-p.Amount}, mevcut {w.Balance}");
+                wallets[p.WalletId] = w with { Balance = nb }; after = nb;
+                await using var up = Cmd(conn, tx, "UPDATE economy.wallets SET balance = $2, version = version + 1 WHERE id = $1", p.WalletId, nb);
+                await up.ExecuteNonQueryAsync(ct);
+            }
+            await using var ent = Cmd(conn, tx,
+                "INSERT INTO economy.ledger_entries (tx_id, wallet_id, currency, amount, balance_after) VALUES ($1, $2, $3, $4, $5)",
+                txId, p.WalletId, p.Currency, p.Amount, after);
+            await ent.ExecuteNonQueryAsync(ct);
+        }
+
+        // 5) COMMIT: ertelenmiş kısıt tetikleyicisi her para biriminde toplamın 0 olduğunu burada son kez doğrular
+        try { await tx.CommitAsync(ct); }
+        catch (PostgresException e) when (e.SqlState == "23514") { throw new LedgerException("UNBALANCED", e.MessageText); }
+        return new PostResult(txId, Replayed: false);
+    }
+
+    static void Validate(PostRequest r)
+    {
+        if (r.Postings.Count &lt; 2) throw new LedgerException("VALIDATION", "En az iki satır gerekir");
+        if (r.Postings.Any(p =&gt; p.Amount == 0)) throw new LedgerException("VALIDATION", "Tutar 0 olamaz");
+        foreach (var g in r.Postings.GroupBy(p =&gt; p.Currency))
+            if (g.Sum(p =&gt; p.Amount) != 0) throw new LedgerException("UNBALANCED", $"{g.Key} dengesiz");
+    }
+
+    static NpgsqlCommand Cmd(NpgsqlConnection c, NpgsqlTransaction t, string sql, params object?[] args)
+    {
+        var cmd = new NpgsqlCommand(sql, c, t);
+        foreach (var a in args) cmd.Parameters.Add(new NpgsqlParameter { Value = a ?? DBNull.Value });
+        return cmd;
+    }
+}</code></pre><p>Kullanım (Tapu, §9.2): <code>new PostRequest("BUSINESS_DEED_PURCHASE", $"deed:{oyuncu}:otopark", businessDay, "player", oyuncu, Postings.Transfer(oyuncuBayt, sinkDeed, "BAYT", 300), RefType: "business", RefId: businessId.ToString(), PlayerLock: oyuncu)</code>; aynı istek yeniden gelirse <code>PostResult.Replayed = true</code> döner ve ikinci kez ücret alınmaz. Çoklu para birimi (Semt Sınavı ödülü) tek işlemde <code>[ (faucet.exam, BAYT, −500), (oyuncu, BAYT, +500), (faucet.exam, CIP, −10), (oyuncu, CIP, +10) ]</code> satırlarıyla yazılır; her para birimi ayrı dengelenir.</p>
+<h3 id="b7-9-8-ekonomi-panosu-metrikleri-defter">9.8 Ekonomi panosu metrikleri ↔ defter</h3>
+<p>B2 §10.5'in haftalık panosu ayrı bir ölçüm hattı değil, defter ve alan tablolarından türetilen sorgulardır (<code>economy-rollup</code>, 06:00 TR):</p><div class="tablewrap"><table><thead><tr><th>Metrik (B2 §10.5)</th><th>Kaynak sorgu</th></tr></thead><tbody><tr><td>Gider/kaynak oranı</td><td>Haftalık <code>Σ |sink.*|</code> ÷ <code>Σ faucet.*</code> (<code>ledger_entries</code> × <code>wallets.system_code</code>)</td></tr><tr><td>10 günlük harcama</td><td>Oyuncu başına son 10 günde <code>sink</code> ÷ <code>faucet</code> payı</td></tr><tr><td>Medyan bakiye / bant</td><td><code>percentile_cont(0,5)</code> — <code>wallets</code> × <code>player_progress.title</code></td></tr><tr><td>Kaynak dağılımı</td><td><code>faucet</code> satırlarının <code>tx_type</code> payı (hedef 60/20/8/7/5)</td></tr><tr><td>Kasa doluluk kaybı</td><td><code>Σ vault_collections.idle_full_hours</code> ÷ toplam kasa saati</td></tr><tr><td>Referans tavanına çarpanlar</td><td><code>business_runs</code>'ta <code>capped_tl = reference_tl</code> günlerinin payı</td></tr><tr><td>Deneme modu oranı</td><td><code>deneme</code> işletme-günü ÷ toplam işletme-günü</td></tr><tr><td>Gini (bakiye)</td><td>Aktif oyuncu bakiyelerinden hesaplanır</td></tr><tr><td>Bayt ihracı / DAU / gün</td><td><code>Σ faucet</code> ÷ günlük aktif oyuncu (<code>analytics</code>)</td></tr></tbody></table></div>
+</section>

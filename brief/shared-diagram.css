@@ -1,0 +1,15 @@
+/* KodKent diyagram CSS — shared.css'ten sonra gelir. Yalnızca tokenlar. */
+.diag svg{display:block;width:100%;height:auto}
+.dg-t{font:600 12.5px var(--font-body);fill:var(--fg)}
+.dg-s{font:11px var(--font-body);fill:var(--muted)}
+.dg-m{font:11px var(--font-mono);fill:var(--fg-2)}
+.dg-g{font:700 11px var(--font-body);fill:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.dg-w{font:600 18px var(--font-body);fill:var(--fg-2)}
+.dg-lab{font:600 11.5px var(--font-body);fill:var(--fg-2);paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round}
+.dg-life{stroke:var(--line-2);stroke-width:1.2;stroke-dasharray:4 4}
+.wirepair{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.wirepair figure{margin:0}
+.wirepair .wp-desktop{flex:1 1 420px;min-width:0}
+.wirepair .wp-phone{flex:0 1 230px;min-width:190px}
+.wirepair .diag{padding:8px}
+.wirepair figcaption{font-size:12px;text-align:center}

@@ -1,0 +1,14 @@
+<div id="demo-bar" role="toolbar" aria-label="Demo çubuğu">
+  <span class="demo-marka"><svg class="ik" width="22" height="22" aria-hidden="true" focusable="false"><use href="#i-logo"/></svg><b>KodKent</b><span class="demo-alt">Prototip</span></span>
+  <label class="sr" for="demo-screen">Ekran seç</label>
+  <select id="demo-screen" class="demo-sec" aria-label="Ekran seç"></select>
+  <button type="button" id="demo-sifirla" class="demo-btn" title="Tüm ilerlemeyi sil ve Giriş ekranından başla"><svg class="ik" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-yenile"/></svg><span class="demo-yazi">Baştan başla</span></button>
+  <button type="button" id="demo-hizli" class="demo-btn" title="Örnek oyuncu: Deniz, Sev. 3, 320 B, Çarşı 1.1–1.3 tamam, Ruhsat 2/3"><svg class="ik" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-yildirim"/></svg><span class="demo-yazi">Hızlı kurulum</span></button>
+  <span id="demo-oyuncu" class="demo-oyuncu" hidden>Demo oyuncusu</span>
+  <span id="ai-rozet" class="ai-rozet ai-bekliyor" role="status" aria-live="polite" title="Yapay zekâ bağlantısı"><i class="ai-nokta"></i><span class="ai-yazi">Kurul: izin bekleniyor</span></span>
+</div>
+<div id="app">
+  <header id="hud" hidden></header>
+  <main id="screen" tabindex="-1"></main>
+  <div id="float-root"></div><div id="toast-root" aria-live="polite"></div><div id="modal-root"></div>
+</div>

@@ -1,0 +1,138 @@
+<!-- build_page.py ile üretildi -->
+<section id="muhur-tekrar">
+<h2>Ders Mührü, Telafi Turu, Semt Sınavları ve Günlük Tekrar</h2>
+<p>Mühür kararı, Telafi Turu ve 1-3-7-21 tekrar takvimi tek akışta özetlenir (B4 §6 ve §8'den çizildi); ardından kurallar, Semt Sınavları ve algoritma spec'ten aynen gelir.</p>
+<figure><div id="d-muhur"></div><figcaption>Üç sorudan ikisi 70 ve üstüyse Mühür verilir ve takvim başlar; değilse Telafi Turu aynı kavramı farklı sorularla yeniden açar. Yanlış cevap tekrar saatini sıfırlar.</figcaption></figure>
+<h3 id="b4-6-ders-muhru-ve-telafi-turu">6. Ders Mührü ve Telafi Turu</h3>
+<div class="tablewrap"><table><thead><tr><th>Kural</th><th>Değer</th><th>Kaynak</th></tr></thead><tbody><tr><td>Soru sayısı</td><td>3 Usta sorusu (S1–S3)</td><td>KANON §10</td></tr><tr><td class="nw">Mühür</td><td>3 sorudan 2'si ≥70; soru puanı = iki denemenin yükseği</td><td>KANON §9, B2 §4.2</td></tr><tr><td class="nw">Deneme</td><td>Soru başına 2; 2. deneme %80 XP; Usta takip sorusu en çok +10</td><td>KANON §9</td></tr><tr><td>Puan &lt; 40</td><td>Usta ilgili kartı yeniden açmayı önerir; XP kaybı yok</td><td>KANON §9</td></tr><tr><td>Telafi Turu</td><td>Mühür alınamazsa 10 dk sonra; aynı kavram, <strong>farklı 3 soru</strong>; sınırsız</td><td>KANON §10</td></tr><tr><td>XP tavanı</td><td>Ders toplamı 118 / 204 / 312 / 442'yi aşamaz; Telafi mühür içindir, XP için değil</td><td>B2 §4.3</td></tr><tr><td class="nw">Kota</td><td>Günde 30 AI puanlaması; dolunca cevap kaydedilir, gece Batch ile puanlanır, mühür sabah düşer (ders kilitlenmez)</td><td>KANON §9</td></tr><tr><td class="nw">Kilit</td><td>Mühür prova görevini açar; kartlar mühürden sonra da gezilebilir</td><td>VİZYON §6</td></tr></tbody></table></div><p><strong>Durumlar.</strong> <code>Kartlar → S1 → S2 → S3 → Değerlendir</code>; sonuç <code>Muhurlu</code> (görev açılır, 1-3-7-21 takvimi başlar, §8), <code>TelafiBekliyor</code> (10 dk sayacı, Meydan'a dönülebilir) ya da <code>PuanBekliyor</code> (kota). Üçüncü Telafi'de de mühür yoksa Usta ön koşul dersini önerir (A-vizyon-egitim §6; cezasızdır).</p><p><strong>Soru bankası (B3 §2.6).</strong> Her ders 6 şablon taşır: S1–S3 hedef havuzu (<code>S-1.2-K1</code>, <code>S-1.2-C1</code>, <code>S-1.2-H1</code>), 3 şablon Telafi havuzu (<code>S-1.2-K2</code>…). Her şablonun 3 varyantı vardır (yüzey ve sayılar değişir, beceri aynı kalır); varyant <code>hash(oyuncuId ‖ soruId) mod 3</code> ile seçilir. Telafi Turu telafi şablonlarını çeker; Telafi sınırsız olduğundan sonraki turlar aynı şablonların sıradaki varyantını (a → b → c → a) sorar. Yeni şablon gecelik Opus Batch ile üretilir (B3 §12.3). Her şablon bir yanılgı kimliği (Y-id, B3 §12.5) taşır.</p><pre class="code" data-lang="cs"><code>public enum MuhurDurumu { Muhurlu, TelafiBekliyor, PuanBekliyor }
+
+public static MuhurDurumu DersMuhru(IReadOnlyList&lt;int?&gt; puanlar)
+{
+    if (puanlar.Any(p =&gt; p is null)) return MuhurDurumu.PuanBekliyor;   // kota: gece Batch
+    return puanlar.Count(p =&gt; p &gt;= 70) &gt;= 2 ? MuhurDurumu.Muhurlu : MuhurDurumu.TelafiBekliyor;
+}
+
+public static DateTime TelafiAcilis(DateTime sonCevapUtc) =&gt; sonCevapUtc.AddMinutes(10);
+
+public static IReadOnlyList&lt;string&gt; TelafiSorulari(string dersId, string oyuncuId, int tur, ISoruBankasi banka)
+{
+    // tur 1 = ilk Telafi; sınırsız tur için varyant a → b → c → a döner
+    return banka.Sablonlar(dersId, havuz: "telafi")                    // 3 şablon (K2, C2, H2)
+                .Select(s =&gt; $"{s.Id}-{Varyant(oyuncuId, s.Id, tur)}")
+                .ToList();
+}
+
+static char Varyant(string oyuncuId, string soruId, int tur)
+{
+    uint h = 2166136261;                                               // FNV-1a
+    foreach (char c in oyuncuId + soruId) h = (h ^ c) * 16777619;
+    return (char)('a' + (h + (uint)(tur - 1)) % 3);
+}</code></pre>
+<h3 id="b4-7-semt-sinavlari">7. Semt Sınavları</h3>
+<h4 id="b4-7-1-ortak-tasarim">7.1 Ortak tasarım</h4>
+<div class="tablewrap"><table><thead><tr><th>Öğe</th><th>Kural</th></tr></thead><tbody><tr><td class="nw">Biçim</td><td>20 dk: <strong>3 Kod Yazma</strong> (her biri ≈4 dk) + <strong>3 Usta sorusu</strong> (1 Kavram, 1 Çıktı Tahmini, 1 Hata Avı; ≈2 dk) + 2 dk geçiş. Sayaç görünür; süre dolunca teslim edilmeyen madde 0</td></tr><tr><td class="nw">Interleaving</td><td>Maddeler konu bloklarıyla değil dönüşümlü (Y, K, Y, Ç, Y, H) sıralanır; her sınav ≥3 farklı modülden madde alır, Liman'dan itibaren en az 2 madde önceki semtlerden gelir</td></tr><tr><td>Kod maddesi</td><td>3 açık + 3 gizli test; 2'si oyuncuya özel tohumlu; imza verilir (iskelet)</td></tr><tr><td class="nw">Geçme</td><td><strong>3/3 kod maddesi</strong> (tüm testler) <strong>ve</strong> 3 Usta sorusunun ortalaması ≥70</td></tr><tr><td class="nw">Giriş</td><td>Semtin tüm derslerinde Ders Mührü; seviye eşiğinden bağımsız açılır, semt kapısı ikisini birden ister (B2 §11.1)</td></tr><tr><td class="nw">Başarısızlık</td><td>Bekleme yok; yeni set (A → B → C → parametre varyantı); zayıf maddelerin dersleri Günlük Tekrar kuyruğuna <strong>3 kat ağırlıkla</strong> girer (§8)</td></tr><tr><td>Ödül (ilk geçiş)</td><td>500 B + 10 Çip + 200 XP + Semt Madalyası (Nişan); tekrar geçiş 0</td></tr><tr><td class="nw">Maliyet</td><td>AI ağırlığı sınav başına 2,0 (K 1 + Ç 0,5 + H 0,5); kod maddeleri AI'sız</td></tr></tbody></table></div>
+<h4 id="b4-7-2-yedi-sinavin-kalemleri">7.2 Yedi sınavın kalemleri</h4>
+<div class="tablewrap"><table><thead><tr><th>Sınav (Usta)</th><th>Kod 1</th><th>Kod 2</th><th>Kod 3</th><th>U1 · U2 · U3</th><th>Önceki semtlerden</th></tr></thead><tbody><tr><td>Çarşı (Defne)</td><td>Yeni tarife yüzeyi: hamam ücreti, 3 süre kademesi (1.3, 1.4)</td><td>Para üstünde bozukluk adedi, <code>decimal</code> + döngü (1.5–1.7)</td><td>Miktara göre indirim ve hizalı fiş (1.9, 1.11)</td><td>K: tam sayı bölmesi neden keser (1.2) · Ç: <code>while</code> izleme (1.6) · H: <code>=</code> / <code>==</code> ve sınır (1.3)</td><td>— (ilk sınav; modüller arası karışım)</td></tr><tr><td>Liman (Kerem)</td><td>Envanterde en çok stok: <code>Dictionary</code> (2.4, 2.5)</td><td>Manifesto metni: <code>Split</code> + <code>TryParse</code> toplamı (2.6)</td><td>Yıkama paketi kademeli fiyat (1.9 + 2.8)</td><td>K: <code>List</code> mi <code>Dictionary</code> mi (2.4) · H: bir fazla indeks (2.2) · Ç: <code>Sort</code> sonrası liste (2.11)</td><td>Çarşı: kademeli şema (Kod 3), tam sayı bölmesi</td></tr><tr><td>Atölyeler (Nehir)</td><td>Kalıtım: <code>Vehicle</code>, <code>override Fee()</code> (3.7)</td><td><code>ArgumentOutOfRangeException</code> ile sözleşmeyi koru (3.3)</td><td><code>interface IDiscount</code> iki uygulama + liste (3.11, 3.8)</td><td>K: kapsülleme neden (3.6) · Ç: <code>virtual</code> / <code>override</code> çıktısı (3.7) · H: üç iş yapan sınıf (3.14)</td><td>Çarşı: kademe hesabı (Kod 2); Liman: <code>List&lt;T&gt;</code> (Kod 3)</td></tr><tr><td>Kampüs (Baran)</td><td>LINQ <code>GroupBy</code> raporu (4.6)</td><td>Gece tarifesi: <code>DateTime</code> / <code>TimeSpan</code> (4.7)</td><td>Record'u JSON'a çevir ve geri oku (5.6)</td><td>K: <code>Func&lt;&gt;</code> ve lambda (4.2) · Ç: LINQ ertelenmiş çalışma (4.4) · H: <code>NullReferenceException</code> (5.8)</td><td>Atölyeler: <code>record</code>, <code>interface</code>; Liman: <code>Dictionary</code></td></tr><tr><td>Finans Bölgesi (Elif)</td><td><code>Task.WhenAll</code> ile iki işi birlikte bekle (6.2)</td><td>Sınır değerleri için <code>[Theory]</code> testi yaz (7.2)</td><td>Retry + backoff (6.7)</td><td>K: neden <code>lock</code> (6.3) · H: yarış durumu (6.3) · Ç: <code>await</code> sırası (6.1)</td><td>Kampüs: LINQ / JSON; Atölyeler: exception</td></tr><tr><td>Veri Vadisi (Selin)</td><td>JOIN + GROUP BY sorgusu (8.3)</td><td>EF Core ile ekle, güncelle, <code>Include</code> ile oku (8.5, 9.1)</td><td>Transaction ve <code>Rollback</code> senaryosu (9.3)</td><td>K: migration neden (8.6) · H: N+1 (9.5) · Ç: <code>Include</code> olmadan navigation (9.1)</td><td>Finans: async; Kampüs: LINQ</td></tr><tr><td>Bulut Tepesi (Yusuf)</td><td>Minimal API: GET / POST + DTO + 404 (10.2–10.4)</td><td>DI ile servis kaydı ve yapıcıdan enjeksiyon (11.1)</td><td>JWT'li uç noktada yetki denetimi (11.3, 11.4)</td><td>K: REST durum kodu seçimi (10.3) · H: sırrı koda yazmak (11.5) · Ç: middleware sırası (11.2)</td><td>Veri Vadisi: EF Core; Finans: test</td></tr></tbody></table></div><p>Bulut Tepesi'nin ardında açılacak semt yoktur; KANON "semt başına 1 sınav" der. Bu sınav <strong>mezuniyet</strong> niteliğindedir: ödül aynıdır ve yedinci Semt Madalyası verilir; kapı işlevi yoktur, Şehir Mimarı unvanı seviyeyle gelir (Ek A).</p>
+<h3 id="b4-8-gunluk-tekrar-algoritmasi-1-3-7-21">8. Günlük Tekrar algoritması (1-3-7-21)</h3>
+<h4 id="b4-8-1-kurallar">8.1 Kurallar</h4>
+<div class="tablewrap"><table><thead><tr><th>Öğe</th><th>Kural</th></tr></thead><tbody><tr><td class="nw">Oturum</td><td>5 soru, hedef 3 dk (yumuşak: sayaç görünür, dolunca ceza yok); 20 B + 15 XP; günde 1 ödüllü oturum; seri ≥7 iken Bayt ×1,5 (30 B), XP sabit (KANON §4). Tamamlama ölçütü beş *cevap*tır, doğruluk aranmaz (B6 §3.1)</td></tr><tr><td>Soru biçimi</td><td>AI'sız mikro soru: çoktan seçmeli çıktı tahmini, satır seçmeli hata avı, boşluk doldurma / eşleştirme; ders başına ≥3 kart; cevap ≈35 sn; turda en çok 1 serbest cevaplı kart (B6 §3.1 uzlaşması, Kurul kotasına sayılır)</td></tr><tr><td class="nw">Vade</td><td>Mühür günü T0'dan <strong>+1, +3, +7, +21 gün</strong> (sabit takvim); geç cevap vadeyi kaydırmaz, en erken ertesi gündür</td></tr><tr><td class="nw">Altın</td><td>3 ardışık doğru (T0+7'de); altın duraklar 21 günde bir bakım sorusu alır</td></tr><tr><td class="nw">Yanlış</td><td>Ardışık sıfırlanır, altın → yeşil, T0 := bugün, ertesi gün yeniden başlar</td></tr><tr><td>Semt Sınavı başarısızlığı</td><td>Zayıf maddelerin dersleri <code>Agirlik = 3</code> alır, vade bugündür; doğru cevapta ağırlık 1'e döner</td></tr><tr><td class="nw">Seri</td><td>Gün sınırı TR 04:00. ≥1 tamamlanmış oturum seriyi 1 artırır. Kaçırılan her gün için 1 dondurma tüketilir (önce haftalık ücretsiz, sonra Seri Dondurucu 50 B, stok ≤2 [B6]); yetmezse seri 0 olur, "en uzun seri" saklanır; ceza yok</td></tr><tr><td>İlk gün</td><td>Kuyruk boştur (mühür vadesi ertesi gün); çıkış kartı "Yarın: Günlük Tekrar 3 dk" der (VİZYON §4)</td></tr></tbody></table></div>
+<h4 id="b4-8-2-veri-yapisi-b7-4-2-tablolariyla-esleme">8.2 Veri yapısı (B7 §4.2 tablolarıyla eşleme)</h4>
+<div class="tablewrap"><table><thead><tr><th>B4 alanı</th><th>B7 karşılığı</th><th>Not</th></tr></thead><tbody><tr><td><code>t0</code> (mühür günü; yanlışta bugüne çekilir)</td><td><code>progress.metro_stops.sealed_at</code></td><td>B7'de <code>sealed_at</code> değişmez; <strong>B4 önerisi:</strong> ayrı <code>anchor_on</code> (date) alanı</td></tr><tr><td><code>ardisik_dogru</code>, <code>altin</code></td><td><code>metro_stops.correct_streak</code>, <code>state = 'altin'</code></td><td class="nw">aynı</td></tr><tr><td><code>asama</code>, <code>sonraki</code>, <code>agirlik</code></td><td><code>progress.review_queue.stage</code>, <code>due_on</code>, <code>weight</code></td><td>B7 anahtarı <code>(player_id, question_id)</code>; B4 <strong>durak başına satır</strong> ister: PK <code>(player_id, lesson_id)</code> (<strong>B4 önerisi</strong>). Kart seçimi oturum katmanındadır</td></tr><tr><td><code>gun</code>, <code>en_uzun</code>, <code>son_tamamlanan</code></td><td><code>progress.streaks.current</code>, <code>longest</code>, <code>last_active_on</code></td><td class="nw">aynı</td></tr><tr><td><code>haftalik_hak</code>, <code>dondurucu_adedi</code></td><td><code>streaks.freezes_available</code>, <code>last_freeze_on</code></td><td>B4 iki sayaç ister: haftalık hak (≤1) ve Seri Dondurucu stoku (≤2) (<strong>B4 önerisi</strong>)</td></tr><tr><td>günde tek ödül</td><td>ledger türü <code>DAILY_REVIEW_REWARD</code>, anahtar <code>dr:{oyuncu}:{iş günü}</code></td><td class="nw">aynı</td></tr></tbody></table></div><p>Uç noktalar: <code>GET /v1/reviews/daily</code> (5 soru) ve <code>POST /v1/reviews/daily/answers</code> (B7 §5.3).</p>
+<h4 id="b4-8-3-oturum-kurulumu-sozde-kod">8.3 Oturum kurulumu (sözde kod)</h4>
+<pre class="code" data-lang="txt"><code>Oturum(oyuncu, bugun):
+  vadeli  ← kayitlar WHERE sonraki ≤ bugun
+  skor(k) = k.agirlik × (1 + 0,15 × gecikmeGunu(k)) × (k.altin ? 0,5 : 1)
+  tur 1:  skor azalan; aynı modülden art arda en çok 2  →  secilen (en çok 5)
+  tur 2:  eksikse kalan vadelileri kısıtsız ekle
+  tur 3:  hâlâ eksikse vadesi gelmemiş en eski mühürleri ekle (vade değişmez)
+  her durak için kart: son 14 günde görülmeyen ve son kartla farklı tipte olan; yoksa rastgele
+  sonuç: durak başına 1 soru → o sonuç; aynı duraktan 2 soru gerekirse ikisi de doğru olmalı</code></pre>
+<details class="acc"><summary id="b4-8-4-c-iskeleti-derlenip-denendi">8.4 C# iskeleti (derlenip denendi)</summary>
+<pre class="code long" data-lang="cs" tabindex="0"><code>public sealed class TekrarKaydi
+{
+    public string DersId = "";
+    public DateOnly T0;            // mühür günü (yanlışta bugüne çekilir)
+    public int Asama;              // 0..3: sıradaki vade V[Asama]
+    public int ArdisikDogru;       // 3 → altın
+    public bool Altin;
+    public DateOnly Sonraki;
+    public int Agirlik = 1;        // Semt Sınavı başarısızlığında 3
+}
+
+public sealed class Seri
+{
+    public int Gun, EnUzun, DondurucuAdedi;
+    public bool HaftalikHak = true;
+    public DateOnly SonTamamlanan;
+}
+
+public static class TekrarPlanlayici
+{
+    static readonly int[] V = { 1, 3, 7, 21 };   // mühür gününe göre vade (gün)
+
+    public static TekrarKaydi Yeni(string dersId, DateOnly muhurGunu) =&gt;
+        new() { DersId = dersId, T0 = muhurGunu, Sonraki = muhurGunu.AddDays(V[0]) };
+
+    public static void Cevapla(TekrarKaydi k, bool dogru, DateOnly bugun)
+    {
+        if (!dogru)
+        {
+            k.T0 = bugun; k.Asama = 0; k.ArdisikDogru = 0; k.Altin = false;  // altın → yeşil
+            k.Sonraki = bugun.AddDays(1);                                    // takvim bugünden yeniden
+            return;
+        }
+        k.ArdisikDogru = Math.Min(3, k.ArdisikDogru + 1);
+        k.Altin = k.ArdisikDogru &gt;= 3;
+        if (k.Asama &lt; V.Length - 1)
+        {
+            k.Asama++;
+            var hedef = k.T0.AddDays(V[k.Asama]);
+            k.Sonraki = hedef &gt; bugun ? hedef : bugun.AddDays(1);            // geç cevapta takvim kaymaz
+        }
+        else k.Sonraki = bugun.AddDays(21);                                  // altın bakım
+        k.Agirlik = 1;
+    }
+
+    static double Skor(TekrarKaydi k, DateOnly bugun) =&gt;
+        k.Agirlik * (1 + 0.15 * Math.Max(0, bugun.DayNumber - k.Sonraki.DayNumber)) * (k.Altin ? 0.5 : 1.0);
+
+    public static List&lt;TekrarKaydi&gt; Oturum(IReadOnlyList&lt;TekrarKaydi&gt; hepsi, DateOnly bugun,
+                                           Func&lt;string, int&gt; modulOf, int adet = 5)
+    {
+        var vadeli = hepsi.Where(x =&gt; x.Sonraki &lt;= bugun).OrderByDescending(x =&gt; Skor(x, bugun)).ToList();
+        var secilen = new List&lt;TekrarKaydi&gt;();
+        foreach (var k in vadeli)                                   // tur 1: aynı modülden art arda ≤ 2
+        {
+            if (secilen.Count == adet) break;
+            int m = modulOf(k.DersId);
+            if (secilen.Count &gt;= 2 &amp;&amp; modulOf(secilen[^1].DersId) == m &amp;&amp; modulOf(secilen[^2].DersId) == m) continue;
+            secilen.Add(k);
+        }
+        foreach (var k in vadeli.Except(secilen))                   // tur 2: kısıtı gevşet
+            if (secilen.Count &lt; adet) secilen.Add(k);
+        foreach (var k in hepsi.Except(secilen).OrderBy(x =&gt; x.T0)) // tur 3: en eski mühürler
+            if (secilen.Count &lt; adet) secilen.Add(k);
+        return secilen;
+    }
+
+    public static void SeriGuncelle(Seri s, DateOnly bugun)          // oturumdan önce çağrılır
+    {
+        int kacirilan = bugun.DayNumber - s.SonTamamlanan.DayNumber - 1;
+        if (kacirilan &lt;= 0 || s.Gun == 0) return;
+        int hak = (s.HaftalikHak ? 1 : 0) + s.DondurucuAdedi;
+        if (hak &lt; kacirilan) { s.Gun = 0; return; }                  // ceza yok; EnUzun saklanır
+        int kullan = kacirilan;
+        if (s.HaftalikHak) { s.HaftalikHak = false; kullan--; }
+        s.DondurucuAdedi -= kullan;
+        s.SonTamamlanan = s.SonTamamlanan.AddDays(kacirilan);        // dondurulan günler seriyi korur
+    }
+
+    public static void Tamamla(Seri s, DateOnly bugun, out int bayt, out int xp)
+    {
+        s.Gun++; s.EnUzun = Math.Max(s.EnUzun, s.Gun); s.SonTamamlanan = bugun;
+        bayt = s.Gun &gt;= 7 ? 30 : 20;                                 // seri ≥ 7 → ×1,5
+        xp = 15;
+    }
+}</code></pre><p>Doğrulama (2026-11-02'de mühürlenen ders): D1 doğru → sonraki D3; D3 doğru → D7; D7 doğru → <strong>altın</strong>, sonraki D21; D21 doğru → D42; D42 yanlış → yeşil, ertesi gün. Seri 5 iken 1 gün kaçırma haftalık dondurmayla korunur; 3 gün kaçırma (hak yok) seriyi 0'lar ve <code>EnUzun = 5</code> kalır; Seri Dondurucu'lu 8'lik seri 9'a çıkar ve 30 B verir.</p>
+</details>
+</section>

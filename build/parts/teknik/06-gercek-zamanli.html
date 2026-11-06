@@ -1,0 +1,352 @@
+<!-- build_page.py ile üretildi -->
+<section id="gercek-zamanli">
+<h2>Gerçek zamanlı katman ve asenkron işler</h2>
+<p>Dünya ve sohbet SignalR hub'ları üzerinden akar; sahne başına shard modeli ve ölçekleme diyagramı B7 §15.7'den çizildi. Asenkron işler ve kuyruklar (B7 §7) bölümün sonundadır.</p>
+<h3 id="b7-6-1-tasarim-ozeti">6.1 Tasarım özeti</h3>
+<p>Şehir, "sahne"lerden oluşur (B1 §11): Meydan, Akademi Lobisi, Kürsü, Ana Cadde gibi kamusal sahneler <strong>shard</strong>'lanır (aynı sahnenin paralel kopyaları, en çok 40 avatar); Oda, Ara Sokak ve işletme içi sahibine bağlı <strong>tek örnek</strong>tir. Backend bu modeli şöyle uygular:</p><ol><li><strong>Bir sahne ziyareti = bir WebSocket bağlantısı.</strong> Oyuncu <code>POST /v1/world/scenes/{sceneKey}/join-tickets</code> ile bir shard ayırır; yanıttaki 15 sn'lik tek kullanımlık <em>bilet</em> ve <code>hubUrl</code> ile <code>/hubs/world</code>'e bağlanır. Sahne değişince (kapıdan geçiş) bağlantı kapanır, yenisi açılır (≈ 150 ms). Bu, ingress'in shard kimliğine göre <strong>tutarlı karma ile aynı pod'a</strong> yönlendirmesini mümkün kılar (<code>?shard=meydan-07</code>): bir shard'ın bütün bağlantıları aynı pod'dadır ve shard durumu o pod'un belleğindedir.</li><li><strong>Sunucu otoriterdir.</strong> İstemci yalnızca niyet bildirir (<code>MoveTo(gx, gy)</code>); yolu sunucu aynı <code>walkable</code> bit kümesiyle hesaplar, hızı ve hız sınırını denetler, sonucu 5 Hz'lik toplu <code>scene.delta</code> ile yayar. İstemciler yol üzerinde yumuşak ara değerleme yapar (60 fps çizim, 5 Hz ağ).</li><li><strong>Redis backplane yalnızca pod'lar arası olaylar içindir:</strong> <code>api</code>/<code>worker</code> pod'larından oyuncuya giden kullanıcı olayları (<code>user.xp</code>, <code>job.completed</code>, <code>user.wallet</code>…) ve sohbet kanalları. Sahne içi trafik backplane'e hiç uğramaz; bu yüzden shard sayısı arttıkça Redis yükü doğrusal artmaz.</li><li><strong>Kalıcılık yoktur, geri kazanım vardır.</strong> Avatar konumları pod belleğinde tutulur ve Redis'e anlık görüntü olarak yazılır (<code>player:loc</code>). Pod ölürse istemciler yeniden bağlanır, ingress başka pod seçer, shard aktörü Redis anlık görüntüsünden ≤ 2 sn'de yeniden kurulur.</li></ol>
+<h3 id="b7-6-2-hub-lar">6.2 Hub'lar</h3>
+<div class="tablewrap"><table><thead><tr><th>Hub</th><th>Yol</th><th>Amaç</th><th>Bağlantı ömrü</th><th>Kimlik</th><th>Ölçek birimi</th></tr></thead><tbody><tr><td class="nw"><code>WorldHub</code></td><td class="nw"><code>/hubs/world</code></td><td>Sahne içi avatar, hareket, emote, etkileşim; oyuncuya özel kullanıcı olayları (<code>user:{id}</code> grubu)</td><td>Bir sahne ziyareti</td><td>Bilet (JWT URL'de taşınmaz)</td><td>Shard → pod (tutarlı karma)</td></tr><tr><td class="nw"><code>ChatHub</code></td><td class="nw"><code>/hubs/chat</code></td><td>Sahne/oda sohbeti, DM, moderasyon olayları</td><td>Oturum boyunca tek bağlantı</td><td><code>POST /v1/chat/connection-tickets</code> bileti</td><td>Grup → backplane</td></tr></tbody></table></div><p>Sohbetin ayrı hub olmasının nedeni <strong>izolasyondur</strong>: sohbet spam'i, hareket akışının gecikmesini bozmamalı; moderasyon durdurmaları (<code>chat.muted</code>) bağımsız ölçeklenmeli; 15–17 yaş sohbet politikası tek yerde uygulanmalı.</p><p><strong>Taşıma ayarları.</strong> WebSockets-only (<code>SkipNegotiation = true</code>, <code>LongPolling</code> ve SSE kapalı; çünkü bunlar yapışkan oturum gerektirir), keep-alive 15 sn, istemci zaman aşımı 45 sn, en büyük ileti 32 KB, ileti protokolü başlangıçta JSON (10k DAU üstünde MessagePack + <code>permessage-deflate</code>, ≈ 3× daha az bant). Bağlantı başına <code>IHubFilter</code> ile hız sınırı (§6.3 tablosu) ve <code>Context.Items</code> içinde <code>PlayerId</code>, <code>Shard</code>, <code>AgeBand</code>, <code>Par</code>.</p>
+<h3 id="b7-6-3-olaylar">6.3 Olaylar</h3>
+<p><strong>İstemci → sunucu (<code>WorldHub</code>)</strong></p><div class="tablewrap"><table><thead><tr><th>Yöntem</th><th>Yük</th><th>Doğrulama</th><th>Limit</th><th>Yanıt</th></tr></thead><tbody><tr><td class="nw"><code>MoveTo</code></td><td><code>{ seq:int, gx:int, gy:int }</code></td><td>Hedef <code>walkable</code>; yol ≤ 60 tile; sahne dışı değil; avatar <code>ghost</code> değil</td><td>4/sn (patlama 8)</td><td class="nw"><code>move.ack</code></td></tr><tr><td class="nw"><code>Emote</code></td><td><code>{ emoteId:string }</code></td><td>Emote oyuncunun envanterinde (8 başlangıç + kazanılanlar); oturma emote'u banka yakın</td><td class="nw">1/sn</td><td><code>scene.delta</code> içinde</td></tr><tr><td class="nw"><code>Interact</code></td><td><code>{ targetId:string, kind:"door"|"npc"|"kasa"|"tabela"|"bank" }</code></td><td>Hedef 2 tile içinde; yetki (kapı kilitli mi, Oda izni, kapasite)</td><td class="nw">2/sn</td><td><code>interaction.result</code> ya da <code>scene.transition</code></td></tr><tr><td class="nw"><code>Resync</code></td><td><code>{ lastTick:int }</code></td><td class="nw">—</td><td>1/5 sn</td><td class="nw"><code>scene.snapshot</code></td></tr><tr><td class="nw"><code>Leave</code></td><td class="nw"><code>{}</code></td><td class="nw">—</td><td class="nw">—</td><td>bağlantı kapanır</td></tr></tbody></table></div><p><strong>İstemci → sunucu (<code>ChatHub</code>)</strong></p><div class="tablewrap"><table><thead><tr><th>Yöntem</th><th>Yük</th><th>Doğrulama</th><th>Limit</th><th>Yanıt</th></tr></thead><tbody><tr><td class="nw"><code>Send</code></td><td><code>{ clientMsgId:uuid, channel:"sahne"|"oda"|"dm", target:string, text:string }</code></td><td>≤ 200 karakter, bağlantı yok, sözlük (§7.5), <code>Par</code> kapısı (serbest metin 15–17'de veli onayına bağlı), susturma, engelleme</td><td><strong>1 mesaj / 3 sn</strong> (VİZYON §9)</td><td><code>chat.ack</code> ya da <code>chat.rejected</code></td></tr><tr><td><code>JoinChannel</code> / <code>LeaveChannel</code></td><td><code>{ channel, target }</code></td><td>Sahne/oda üyeliği; DM için arkadaşlık</td><td class="nw">5/dk</td><td class="nw">—</td></tr><tr><td class="nw"><code>MarkRead</code></td><td><code>{ peerId, upToMessageId }</code></td><td class="nw">—</td><td class="nw">30/dk</td><td class="nw">—</td></tr></tbody></table></div><p><strong>Sunucu → istemci (<code>WorldHub</code>)</strong></p><div class="tablewrap"><table><thead><tr><th>Olay</th><th>Yük (özet)</th><th>Ne zaman</th><th>Alıcı</th></tr></thead><tbody><tr><td class="nw"><code>scene.snapshot</code></td><td><code>{ scene, shard, tick, serverTime, mode, avatars:[{id,handle,title,pos,dir,state,outfit}], objects:[…], lod }</code></td><td>Bağlanınca, <code>Resync</code>'te</td><td class="nw">Bağlantı</td></tr><tr><td class="nw"><code>scene.delta</code></td><td><code>{ tick, t, moved:[{id,path,t0,speed}], emotes:[{id,emoteId}], joined:[…], left:[id…], states:[{id,state}] }</code></td><td>200 ms'de bir, yalnızca değişiklik varsa</td><td>Shard grubu</td></tr><tr><td class="nw"><code>move.ack</code></td><td><code>{ seq, accepted, path?, reason? }</code></td><td>Her <code>MoveTo</code> sonrası</td><td class="nw">Gönderen</td></tr><tr><td class="nw"><code>scene.event</code></td><td><code>{ kind:"meydan_question"|"fountain"|"led", payload }</code></td><td>Saat başı Meydan Sorusu, LED akışı</td><td>Shard (LED küresel yarısı backplane'den)</td></tr><tr><td><code>scene.transition</code></td><td><code>{ toScene, requiresTicket:true }</code></td><td>Kapı etkileşimi</td><td class="nw">Gönderen</td></tr><tr><td class="nw"><code>scene.closing</code></td><td><code>{ reason:"merge"|"deploy", altShard? }</code></td><td>Shard birleştirme/dağıtım</td><td>Shard grubu</td></tr><tr><td><code>interaction.result</code></td><td><code>{ targetId, ok, panel? }</code></td><td>Kasa/tabela/NPC</td><td class="nw">Gönderen</td></tr><tr><td class="nw"><code>user.xp</code></td><td><code>{ amount, total, level, levelUp? }</code></td><td class="nw"><code>XpGrantedv1</code></td><td class="nw"><code>user:{id}</code></td></tr><tr><td class="nw"><code>user.wallet</code></td><td><code>{ currency, delta, balance, reason }</code></td><td class="nw"><code>LedgerPostedv1</code></td><td class="nw"><code>user:{id}</code></td></tr><tr><td class="nw"><code>job.completed</code></td><td><code>{ kind:"grading"|"submission"|"defense"|"run", id, status, url }</code></td><td>Kuyruk işi bitti</td><td class="nw"><code>user:{id}</code></td></tr><tr><td><code>quest.updated</code>, <code>notify.new</code>, <code>vault.full</code>, <code>presence.friend</code></td><td>küçük özet yükleri</td><td>İlgili olay</td><td class="nw"><code>user:{id}</code></td></tr><tr><td><code>session.refresh_required</code></td><td><code>{ reason:"guardian_changed" }</code></td><td>Veli onayı geldi/geri çekildi: JWT talepleri eskidi</td><td class="nw"><code>user:{id}</code></td></tr></tbody></table></div><p><strong>Sunucu → istemci (<code>ChatHub</code>):</strong> <code>chat.message {id, channel, target, from:{id,handle,title}, text, at}</code>, <code>chat.ack {clientMsgId, id}</code>, <code>chat.rejected {clientMsgId, code:"RATE"\|"LINK"\|"FILTER"\|"MUTED"\|"PAR_REQUIRED"}</code>, <code>chat.removed {id, reason}</code> (otomatik gizleme ya da moderasyon), <code>chat.muted {until}</code>.</p><pre class="code" data-lang="json"><code>{ "t": 1730582043200, "tick": 18453,
+  "moved": [ { "id": "0193a0b2-4c1d-7e55-9a21-6f3d8c2b1a07", "t0": 1730582043000, "speed": 4,
+               "path": [[20,18],[20,19],[21,19],[22,19]] } ],
+  "emotes": [ { "id": "0193a1c4-9d02-7a31-b6c4-2e9f01d35c88", "emoteId": "dans-1" } ],
+  "joined": [], "left": [], "states": [ { "id": "0193a1c4-9d02-7a31-b6c4-2e9f01d35c88", "state": "ghost" } ] }</code></pre>
+<h3 id="b7-6-4-oda-shard-modeli">6.4 Oda/shard modeli</h3>
+<p>Kapasiteler, kalıcılık ve "yeni kopya eşiği" <strong>B1 §11.1 tablosundadır</strong> ve burada yeniden tanımlanmaz; B7 bunları <code>scene_defs</code> yapılandırmasında (<code>capacity</code>, <code>newAt</code>, <code>mergeBelow</code>, <code>mergeAfterMin</code>) taşır: Meydan, Ana Cadde, Akademi Lobisi, Blok Sokağı için 40 / 36'da yeni shard; Kürsü 12; Akademi Atölyesi ve Pazar 20; Ara Sokak 20 (+6 sahip hakkı); işletme içi 15; Oda 20 (KANON). Ara Sokak, Oda ve işletme içi *tek örnek*tir: <code>instance</code> anahtarı sahibe bağlıdır (<code>oda-{roomId}</code>), shard seçimi yoktur, kapasite dolunca <code>SCENE_FULL</code> döner; sahip her zaman girer.</p><p><strong>Sahne anahtarları:</strong> <code>meydan</code>, <code>akademi-lobi</code>, <code>kursu-{districtSlug}</code>, <code>akademi-atolye</code>, <code>pazar</code>, <code>cadde-{districtSlug}</code>, <code>sokak-{streetId}</code>, <code>isletme-{businessId}</code>, <code>oda-{roomId}</code>, <code>blok-sokagi</code>.</p><p><strong>Seçim algoritması (B1 §11.2) ve Redis modeli.</strong> Sıra: (1) arkadaşın shard'ı (kapasite &lt; 40; son 4 yer "arkadaşa katıl"a ayrılır), (2) kohort kodunun shard'ı (&lt; 36), (3) en dolu ama ≤ 32 olan açık shard, (4) yeni shard. Atomiklik için tek bir Lua betiği çalışır; koltuk, 15 sn'lik <em>rezervasyon</em> (hold) olarak yazılır ve bilet kullanılmazsa kendiliğinden düşer.</p><div class="tablewrap"><table><thead><tr><th>Redis anahtarı</th><th>Tür</th><th>İçerik</th></tr></thead><tbody><tr><td><code>shard:{scene}:{n}</code></td><td class="nw">hash</td><td><code>joined</code> (bağlı sayı), <code>status</code> (<code>open</code>/<code>draining</code>/<code>closed</code>), <code>pod</code>, <code>since</code></td></tr><tr><td><code>holds:{scene}:{n}</code></td><td class="nw">ZSET</td><td>skor = rezervasyon bitiş ms, üye = bilet kimliği</td></tr><tr><td><code>shards:{scene}:open</code></td><td class="nw">ZSET</td><td>skor = doluluk (joined + etkin rezervasyon), üye = <code>n</code></td></tr><tr><td><code>shardseq:{scene}</code></td><td class="nw">string</td><td>Yeni shard numarası sayacı</td></tr><tr><td><code>cohort:{code}:{scene}</code></td><td class="nw">string</td><td>Kohortun yapışkan shard'ı (TTL 6 sa)</td></tr><tr><td><code>player:loc:{playerId}</code></td><td class="nw">hash</td><td><code>scene</code>, <code>shard</code>, <code>gx</code>, <code>gy</code>, <code>dir</code>, <code>ghostUntil</code>; TTL 120 sn, her hareket sonu ve 10 sn'de bir yenilenir</td></tr><tr><td><code>presence:{playerId}</code></td><td class="nw">string</td><td>Çevrimiçi göstergesi, TTL 90 sn (15 sn'de bir yenilenir)</td></tr><tr><td class="nw"><code>ticket:{id}</code></td><td class="nw">string</td><td><code>{playerId, scene, shard, mode}</code>; TTL 15 sn; <code>GETDEL</code> ile tek kullanım</td></tr></tbody></table></div><pre class="code" data-lang="txt"><code>-- ALLOC_SHARD: KEYS[1]=shards:{scene}:open  ARGV: scene, friendShard|"", cohortShard|"", ticketId, nowMs, holdMs
+local scene, now, holdMs = ARGV[1], tonumber(ARGV[5]), tonumber(ARGV[6])
+local function eff(n)                                   -- etkin doluluk = bağlı + süresi dolmamış rezervasyon
+  local k = 'shard:'..scene..':'..n
+  redis.call('ZREMRANGEBYSCORE', 'holds:'..scene..':'..n, '-inf', now)
+  return tonumber(redis.call('HGET', k, 'joined') or '0') + redis.call('ZCARD', 'holds:'..scene..':'..n)
+end
+local function open(n) return n ~= '' and redis.call('HGET', 'shard:'..scene..':'..n, 'status') == 'open' end
+local pick, why = nil, nil
+if open(ARGV[2]) and eff(ARGV[2]) &lt; 40 then pick, why = ARGV[2], 'friend'
+elseif open(ARGV[3]) and eff(ARGV[3]) &lt; 36 then pick, why = ARGV[3], 'cohort'
+else
+  local cands = redis.call('ZREVRANGEBYSCORE', KEYS[1], 32, '-inf', 'LIMIT', 0, 8)   -- en doludan başla
+  for _, n in ipairs(cands) do if open(n) and eff(n) &lt;= 32 then pick, why = n, 'fullest'; break end end
+end
+if not pick then
+  pick = string.format('%02d', redis.call('INCR', 'shardseq:'..scene)); why = 'new'
+  redis.call('HSET', 'shard:'..scene..':'..pick, 'joined', 0, 'status', 'open', 'since', now)
+end
+redis.call('ZADD', 'holds:'..scene..':'..pick, now + holdMs, ARGV[4])
+redis.call('ZADD', KEYS[1], eff(pick), pick)
+return { pick, why, eff(pick) }</code></pre><p><strong>Birleştirme.</strong> Bir shard 10 dakikadan uzun süre 8 kişinin altında kalırsa <code>status = draining</code>: yeni giriş almaz, içindekiler çıktıkça <code>closed</code> olur, kimse zorla taşınmaz (B1 §11.2). Dağıtım (deploy) sırasında pod <code>scene.closing{reason:"deploy"}</code> yayar; istemci yeni bilet alıp başka pod'daki shard'a geçer.</p><p><strong>Bağlantı kopması (B1 §11.4).</strong> Bağlantı kopunca avatar 30 sn <em>hayalet</em> kalır (<code>ghostUntil</code>), sonra kaldırılır; geri gelen oyuncu <code>player:loc</code>'tan aynı shard ve hücreye döner. Savunma ve Semt Sınavı sırasında sahne değişikliği sunucuda kilitlidir (<code>SCENE_LOCKED</code>); ders durumu zaten sunucudadır, bağlantı kopması kartı kaybettirmez.</p>
+<h3 id="b7-6-5-hareket-senkronizasyonu">6.5 Hareket senkronizasyonu</h3>
+<p><strong>Tick ve ağ.</strong> Shard aktörü 5 Hz (200 ms) çalışır: kuyruktaki komutları işler, süresi dolan hayaletleri kaldırır, <strong>değişiklik varsa</strong> tek bir <code>scene.delta</code> yayınlar. Hareket "tıkla-yürü" olduğundan konum akışı yoktur: her <code>MoveTo</code> bir <em>yol</em> üretir (<code>path</code> hücre dizisi + başlangıç zamanı <code>t0</code> + <code>speed</code>), istemciler bu yol üzerinde kendi saatleriyle ilerler. 40 avatarın hepsi yürüse bile tick başına tek ileti vardır; boştaki sahnede ağ trafiği sıfırdır.</p><p><strong>Ara değerleme bildirimi (B8 sözleşmesi).</strong> Sunucu <code>serverTime</code>'ı snapshot ve her delta içinde yollar; istemci saat farkını (offset) ilk üç delta'dan kestirir ve uzak avatarları <strong>200 ms geride</strong> (1 tick tampon) çizer, kendi avatarını ise tıklandığı anda yerelde başlatır (tahmin) ve <code>move.ack</code> ile uzlaştırır. Avatarın <code>t</code> anındaki hücresi <code>path[ min(len−1, ⌊speed × (t − t0)/1000⌋) ]</code>'dir; hücreler arası piksel ara değerleme istemcidedir.</p><p><strong>Konum doğrulama (sırayla; ilk başarısızlıkta reddedilir, <code>move.ack{accepted:false, reason}</code> + gerekirse düzeltme):</strong></p><ol><li>Hız sınırı: <code>MoveTo</code> ≤ 4/sn (jeton kovası); aşımda yok sayılır, 5 ihlal/dk → bağlantı düşürülür ve <code>abuse</code> sayacı artar.</li><li>Hedef hücre sahne sınırları içinde ve <code>walkable</code> (istemciyle <strong>aynı</strong> <code>walkableHash</code> sürümü; sürüm farkı → <code>Resync</code>).</li><li>Başlangıç, avatarın <em>sunucudaki</em> ara değerlenmiş hücresidir; istemcinin bildirdiği konuma güvenilmez.</li><li>Yol sunucuda A* ile (4 komşu) üretilir; uzunluk ≤ 60 tile (B1 §10.1). İstemcinin yolu kabul edilmez.</li><li>Hız sabittir: 4 tile/sn (B1 §10.1); sunucu <code>t0</code>'ı kendi saatinden koyar, istemci saatine güvenilmez.</li><li>Etkileşim menzili: <code>Interact</code> hedefi avatarın 2 tile içinde olmalı; kapılarda yetki (kilitli semt, Oda izni, kapasite) kontrol edilir.</li><li>Aynı hücrede en çok 2 avatar (B1 §11.3, hafif ofsetle); engel olmaz ama sayı aşılırsa en yakın boş hücreye yapıştırılır.</li><li>Savunma/Semt Sınavı kilidi: sahne dışına <code>Interact</code> reddedilir.</li></ol><p>A* maliyeti: 40 × 40 ızgarada ≈ 50–200 µs; shard başına 40 avatar × saniyede 1 tıklama = 40 A*/sn; 400 shard için 16.000 A*/sn ≈ 1–3 vCPU (hub pod'ları arasında dağılmış), yol önbelleği (<code>(start, goal, mapHash)</code> anahtarı) ile yarıya iner.</p><hr>
+<h3 id="b7-6-6-presence">6.6 Presence</h3>
+<p>Presence üç şeydir ve üçü de <strong>kısa ömürlü Redis anahtarıdır</strong>; veri tabanına yazılmaz. (1) <em>Çevrimiçi</em>: <code>presence:{playerId}</code> her 15 sn'de bir yenilenir (TTL 90 sn); (2) <em>Konum</em>: <code>player:loc:{playerId}</code> (sahne, shard, hücre); (3) <em>Hayalet</em>: bağlantı kopunca 30 sn <code>ghostUntil</code>. Arkadaş listesindeki "çevrimiçi" göstergesi (<code>GET /v1/friends/presence</code>, <code>presence.friend</code> olayı) yalnızca arkadaşlığın iki tarafında da <code>show_online = true</code> ise ve 15–17 yaş için yalnızca <em>karşılıklı onaylı</em> arkadaşlar arasında görünür (güvenli mod, VİZYON §9). "Arkadaşa git" yalnızca arkadaşın konumunu <code>player:loc</code>'tan okur; Kürsü ve Savunma'ya takip yoktur (B1 §10.3), Oda kilitliyse kapı önüne düşülür.</p>
+<h3 id="shard-diyagrami">Shard ölçekleme diyagramı</h3><figure><div id="d-shard"></div><figcaption>Bir shard'ın tüm bağlantıları aynı pod'a düşer (tutarlı karma); pod'lar arası olaylar yalnızca backplane'den geçer. Pod ölürse istemci yeniden bağlanır ve shard anlık görüntüden kurulur.</figcaption></figure><div class="kk-legend"><span class="kk-leg"><i style="background:var(--cobalt-soft);border:1.5px solid var(--cobalt)"></i>İstemci</span><span class="kk-leg"><i style="background:var(--accent-soft);border:1.5px solid var(--accent)"></i>Uygulama</span><span class="kk-leg"><i style="background:var(--violet-soft);border:1.5px solid var(--violet)"></i>Redis</span><span class="kk-leg"><i style="background:var(--surface-2);border:1.5px solid var(--line-2)"></i>Kenar</span><span class="kk-leg"><i class="ln" style="border-top-color:var(--fg-2)"></i>istek / veri akışı</span><span class="kk-leg"><i class="ln dash" style="border-top-color:var(--coral-ink)"></i>pod ölümü ve kurtarma</span></div>
+<h3 id="b7-6-7-olcekleme">6.7 Ölçekleme</h3>
+<p><strong>Pod başına bağlantı bütçesi (2 vCPU / 2 GB <code>hub</code> pod'u).</strong> Bağlantı başına ≈ 100 KB (SignalR + soket + oturum durumu) ve ortalama 40 avatarlık shard başına ≈ 50 KB aktör durumu: 2.500 bağlantı ≈ 250 MB + 60 shard × 50 KB ≈ 260 MB; bellek bütçesi 1 GB'ın altında kalır. CPU: shard başına 5 Hz × 40 alıcı = 200 yazma/sn; 60 shard ≈ 12.000 soket yazması/sn ve tick başına tek JSON serileştirme (alıcı sayısına bölünür) ≈ <strong>0,6–1,0 vCPU</strong>; A* ve doğrulama ≈ 0,2 vCPU. Bu yüzden bütçe <strong>pod başına 2.500 bağlantı (≈ 60 shard)</strong>, tepe %70 doluluk hedefidir (HPA eşiği 1.750). Giden bant: hareket eden avatar oranı %20 varsayımıyla tick başına ≈ 250 B × 40 alıcı = 10 KB; shard başına 50 KB/sn, pod başına ≈ <strong>3 MB/sn (≈ 24 Mbit/sn)</strong>; MessagePack + sıkıştırma ile ≈ 3× azalır.</p><div class="tablewrap"><table><thead><tr><th>Büyüklük</th><th>1k DAU</th><th>10k DAU</th><th>100k DAU</th><th>Not</th></tr></thead><tbody><tr><td>Tepe eşzamanlı bağlantı</td><td class="nw">120</td><td class="nw">1.200</td><td class="nw">12.000</td><td>DAU × %12</td></tr><tr><td>Aktif shard (ort. doluluk 30)</td><td class="nw">4</td><td class="nw">40</td><td class="nw">400</td><td>Meydan ağırlıklı; Kürsü/Oda/İşletme içi tek örnekler ayrıca</td></tr><tr><td>Hub pod sayısı (2.500 bağlantı + 1 yedek)</td><td class="nw">2</td><td class="nw">2</td><td class="nw">6</td><td>HPA eşiği 1.750; dağıtım sırasında 1 yedek</td></tr><tr><td>Tepe giden bant (pod başına tavan 24 Mbit/sn)</td><td>≈ 1 Mbit/sn</td><td>≈ 12 Mbit/sn</td><td>≈ 120 Mbit/sn</td><td>JSON; MessagePack ile ≈ 1/3</td></tr><tr><td>Redis backplane iletisi (kullanıcı olayı)</td><td>≈ 1/sn</td><td>≈ 10/sn</td><td>≈ 100/sn</td><td>≈ 30 olay/oyuncu/saat</td></tr><tr><td>Redis presence yazması</td><td>≈ 8/sn</td><td>≈ 80/sn</td><td>≈ 800/sn</td><td>15 sn'de bir yenileme</td></tr><tr><td>A* hesabı</td><td>≈ 160/sn</td><td>≈ 1.600/sn</td><td>≈ 16.000/sn</td><td>≈ 0,02 / 0,2 / 2 vCPU</td></tr><tr><td>Redis topolojisi</td><td>tek düğüm + replika</td><td>tek düğüm + replika</td><td>Sentinel (3 düğüm)</td><td>Kuyruk Redis'i ile <strong>ayrı</strong> örnek (ADR-12 notu)</td></tr></tbody></table></div><p><strong>Neden shard'a sabit pod?</strong> Backplane'e güvenip her iletiyi Redis üzerinden yaymak, 100k DAU'da saniyede ≈ 120.000 ileti ve 400 grup aboneliği demektir. Shard'ı bir pod'a bağlamak bu trafiği sıfırlar; bedeli pod ölümünde shard'ın yeniden kurulmasıdır (≤ 2 sn), ki bu kabul edilebilir çünkü sahne durumu kalıcı değil türetilmiş bir görünümdür. <strong>Yedek plan:</strong> tutarlı karma şu yapılandırmayla dağıtılır; pod eklemek/çıkarmak yalnızca yeni bilet alan oyuncuları etkiler, mevcut bağlantılar kopmaz.</p><pre class="code" data-lang="txt"><code># ingress-nginx: shard'a göre tutarlı karma, WebSocket zaman aşımı
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$arg_shard"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"</code></pre>
+<details class="acc"><summary id="b7-6-8-hub-iskeleti-c">6.8 Hub iskeleti (C#)</summary>
+<p>Aşağıdaki iskelet derlenir (<code>// [derlenir]</code> işaretli bloklar CI'da proje olarak derlenir). Sunucu otoriterdir: <code>MoveTo</code> yalnızca <em>niyet</em>, yol ve zaman sunucuda üretilir; shard aktörü tek okuyuculu bir <code>Channel</code> üzerinde komutları sırayla işler (kilit gerekmez), 200 ms'lik tick'te toplu <code>scene.delta</code> yayar. Bilet <code>GETDEL</code> ile tek kullanımlıktır.</p><pre class="code long" data-lang="cs" tabindex="0"><code>// [derlenir] WorldHub.cs
+using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Threading.Channels;
+using Microsoft.AspNetCore.SignalR;
+using StackExchange.Redis;
+
+namespace KodKent.Hub;
+
+public readonly record struct Cell(int X, int Y);
+
+public sealed record TicketInfo(Guid PlayerId, string Handle, string Scene, string Shard, int SpawnX, int SpawnY);
+
+/// &lt;summary&gt;Sahne ızgarası (B1 §1.2). walkable bit kümesi istemciyle AYNI dosyadan gelir; Hash sürüm uyumunu denetler.&lt;/summary&gt;
+public sealed class SceneMap(int width, int height, byte[] bits, string hash)
+{
+    public int Width =&gt; width; public int Height =&gt; height; public string Hash =&gt; hash;
+    public bool Walkable(int x, int y) =&gt;
+        x &gt;= 0 &amp;&amp; y &gt;= 0 &amp;&amp; x &lt; width &amp;&amp; y &lt; height &amp;&amp; (bits[(y * width + x) &gt;&gt; 3] &amp; (1 &lt;&lt; ((y * width + x) &amp; 7))) != 0;
+
+    /// &lt;summary&gt;4 komşulu A* (B1 §10.1: yol ≤ 60 tile). Dönüş: başlangıç hücresi DAHİL yol; yoksa null.&lt;/summary&gt;
+    public Cell[]? FindPath(Cell from, Cell to, int maxLen = 60)
+    {
+        if (!Walkable(to.X, to.Y) || from == to) return null;
+        var open = new PriorityQueue&lt;Cell, int&gt;();
+        var g = new Dictionary&lt;Cell, int&gt; { [from] = 0 };
+        var prev = new Dictionary&lt;Cell, Cell&gt;();
+        open.Enqueue(from, H(from, to));
+        (int dx, int dy)[] dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+        while (open.TryDequeue(out var cur, out _))
+        {
+            if (cur == to)
+            {
+                var path = new List&lt;Cell&gt; { to };
+                for (var c = to; c != from; c = prev[c]) path.Add(prev[c]);
+                path.Reverse();
+                return path.Count - 1 &lt;= maxLen ? path.ToArray() : null;
+            }
+            foreach (var (dx, dy) in dirs)
+            {
+                var n = new Cell(cur.X + dx, cur.Y + dy);
+                int ng = g[cur] + 1;
+                if (ng &gt; maxLen || !Walkable(n.X, n.Y) || (g.TryGetValue(n, out var old) &amp;&amp; old &lt;= ng)) continue;
+                g[n] = ng; prev[n] = cur; open.Enqueue(n, ng + H(n, to));
+            }
+        }
+        return null;
+    }
+    static int H(Cell a, Cell b) =&gt; Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+}
+
+public sealed class Avatar(Guid id, string handle, Cell spawn, long now)
+{
+    public Guid Id =&gt; id; public string Handle =&gt; handle;
+    public Cell[] Path = [spawn];                // [0] = t0 anındaki hücre
+    public long T0 = now, GhostUntil;            // ms; GhostUntil = 0 → bağlı
+    public double Tokens = 8; public long TokenAt = now;
+}
+
+/// &lt;summary&gt;Bir shard'ın otoriter durumu: tek okuyuculu kanal + 5 Hz tick.&lt;/summary&gt;
+public sealed class ShardActor : IDisposable
+{
+    public const double Speed = 4.0;             // tile/sn (B1 §10.1)
+    const int TickMs = 200, GhostMs = 30_000;
+    readonly string _id; readonly SceneMap _map; readonly IHubContext&lt;WorldHub&gt; _hub;
+    readonly Channel&lt;Func&lt;Task&gt;&gt; _inbox = Channel.CreateBounded&lt;Func&lt;Task&gt;&gt;(
+        new BoundedChannelOptions(1024) { SingleReader = true, FullMode = BoundedChannelFullMode.DropWrite });
+    readonly Dictionary&lt;Guid, Avatar&gt; _avatars = [];
+    readonly List&lt;object&gt; _moved = [], _joined = []; readonly List&lt;Guid&gt; _left = [];
+    readonly CancellationTokenSource _cts = new(); long _tick;
+
+    public ShardActor(string id, SceneMap map, IHubContext&lt;WorldHub&gt; hub)
+    {
+        (_id, _map, _hub) = (id, map, hub);
+        _ = Task.Run(async () =&gt; { await foreach (var cmd in _inbox.Reader.ReadAllAsync(_cts.Token)) await cmd(); });
+        _ = Task.Run(async () =&gt;
+        {
+            using var t = new PeriodicTimer(TimeSpan.FromMilliseconds(TickMs));
+            while (await t.WaitForNextTickAsync(_cts.Token)) Post(TickAsync);
+        });
+    }
+
+    static long Now() =&gt; DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    void Post(Func&lt;Task&gt; cmd) =&gt; _inbox.Writer.TryWrite(cmd);
+
+    Cell CellAt(Avatar a, long now) =&gt;
+        a.Path[Math.Min(a.Path.Length - 1, (int)(Speed * (now - a.T0) / 1000.0))];     // §6.5 formülü
+
+    public void Join(Guid id, string handle, Cell spawn, string connectionId) =&gt; Post(async () =&gt;
+    {
+        var a = new Avatar(id, handle, spawn, Now());
+        _avatars[id] = a; _joined.Add(new { id, handle, pos = new[] { spawn.X, spawn.Y } });
+        await _hub.Clients.Client(connectionId).SendAsync("scene.snapshot", new
+        {
+            shard = _id, tick = _tick, serverTime = Now(), mapHash = _map.Hash,
+            avatars = _avatars.Values.Select(v =&gt; new { id = v.Id, handle = v.Handle, pos = new[] { CellAt(v, Now()).X, CellAt(v, Now()).Y } })
+        });
+    });
+
+    public void MoveTo(Guid id, int seq, int gx, int gy, string connectionId) =&gt; Post(async () =&gt;
+    {
+        if (!_avatars.TryGetValue(id, out var a)) return;
+        var now = Now();
+        a.Tokens = Math.Min(8, a.Tokens + (now - a.TokenAt) / 1000.0 * 4); a.TokenAt = now;     // 4/sn jeton kovası
+        if (a.Tokens &lt; 1) return;
+        a.Tokens -= 1;
+        var path = _map.FindPath(CellAt(a, now), new Cell(gx, gy));                              // başlangıç SUNUCUDA hesaplanır
+        if (path is null)
+        {
+            await _hub.Clients.Client(connectionId).SendAsync("move.ack", new { seq, accepted = false, reason = "no_path" });
+            return;
+        }
+        a.Path = path; a.T0 = now;
+        var wire = path.Select(c =&gt; new[] { c.X, c.Y }).ToArray();
+        _moved.Add(new { id, t0 = now, speed = Speed, path = wire });
+        await _hub.Clients.Client(connectionId).SendAsync("move.ack", new { seq, accepted = true, t0 = now, path = wire });
+    });
+
+    public void Disconnect(Guid id) =&gt; Post(() =&gt; { if (_avatars.TryGetValue(id, out var a)) a.GhostUntil = Now() + GhostMs; return Task.CompletedTask; });
+
+    async Task TickAsync()
+    {
+        var now = Now(); _tick++;
+        foreach (var a in _avatars.Values.Where(v =&gt; v.GhostUntil != 0 &amp;&amp; v.GhostUntil &lt; now).ToList())
+        { _avatars.Remove(a.Id); _left.Add(a.Id); }                                              // hayalet süresi doldu
+        if (_moved.Count + _joined.Count + _left.Count == 0) return;                             // değişiklik yoksa ağ trafiği yok
+        var delta = new { tick = _tick, t = now, moved = _moved.ToArray(), joined = _joined.ToArray(), left = _left.ToArray() };
+        _moved.Clear(); _joined.Clear(); _left.Clear();
+        await _hub.Clients.Group($"shard:{_id}").SendAsync("scene.delta", delta);
+    }
+
+    public void Dispose() { _cts.Cancel(); _inbox.Writer.TryComplete(); }
+}
+
+public sealed class ShardRegistry(IHubContext&lt;WorldHub&gt; hub, Func&lt;string, SceneMap&gt; maps)
+{
+    readonly ConcurrentDictionary&lt;string, ShardActor&gt; _shards = new();
+    public ShardActor Get(string shardId) =&gt; _shards.GetOrAdd(shardId, id =&gt; new ShardActor(id, maps(id), hub));
+}
+
+/// &lt;summary&gt;Kimlik: JWT değil, REST'ten alınan 15 sn'lik tek kullanımlık bilet (URL'de JWT taşınmaz).&lt;/summary&gt;
+public sealed class WorldHub(ShardRegistry shards, IConnectionMultiplexer redis) : Microsoft.AspNetCore.SignalR.Hub
+{
+    public override async Task OnConnectedAsync()
+    {
+        var q = Context.GetHttpContext()!.Request.Query;
+        var raw = await redis.GetDatabase().StringGetDeleteAsync($"ticket:{q["ticket"]}");       // GETDEL: tek kullanım
+        var t = raw.IsNullOrEmpty ? null : JsonSerializer.Deserialize&lt;TicketInfo&gt;(raw.ToString());
+        if (t is null || t.Shard != q["shard"]) { Context.Abort(); return; }
+
+        Context.Items["pid"] = t.PlayerId; Context.Items["shard"] = t.Shard;
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"shard:{t.Shard}");
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{t.PlayerId}");                // api/worker pod'ları buraya backplane ile yazar
+        shards.Get(t.Shard).Join(t.PlayerId, t.Handle, new Cell(t.SpawnX, t.SpawnY), Context.ConnectionId);
+        await base.OnConnectedAsync();
+    }
+
+    public Task MoveTo(int seq, int gx, int gy)
+    {
+        shards.Get((string)Context.Items["shard"]!).MoveTo((Guid)Context.Items["pid"]!, seq, gx, gy, Context.ConnectionId);
+        return Task.CompletedTask;
+    }
+
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        if (Context.Items["shard"] is string s &amp;&amp; Context.Items["pid"] is Guid p) shards.Get(s).Disconnect(p);
+        return base.OnDisconnectedAsync(exception);
+    }
+}
+
+public static class HubWiring
+{
+    public static void AddKodKentHubs(this IServiceCollection services, string redisConnection)
+    {
+        services.AddSingleton&lt;IConnectionMultiplexer&gt;(_ =&gt; ConnectionMultiplexer.Connect(redisConnection));
+        services.AddSignalR(o =&gt;
+        {
+            o.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            o.ClientTimeoutInterval = TimeSpan.FromSeconds(45);
+            o.MaximumReceiveMessageSize = 32 * 1024;
+        }).AddStackExchangeRedis(redisConnection, o =&gt; o.Configuration.ChannelPrefix = RedisChannel.Literal("kodkent"));
+        services.AddSingleton(sp =&gt; new ShardRegistry(sp.GetRequiredService&lt;IHubContext&lt;WorldHub&gt;&gt;(), id =&gt; throw new NotImplementedException("sahne haritası yükleyici")));
+    }
+}</code></pre>
+</details>
+<h3 id="b7-7-asenkron-isler-ve-kuyruklar">7. Asenkron işler ve kuyruklar</h3>
+<h4 id="b7-7-1-teknoloji-karari-ve-ilkeler">7.1 Teknoloji kararı ve ilkeler</h4>
+<p>Kuyruk teknolojisi <strong>Redis Streams</strong>'tir (ADR-12; KANON §9 "Redis kuyruğu"). Gerekçeler: (1) sandbox bölgesi yalnızca Redis ile konuşabilir, veri tabanı kimlik bilgisi taşımaz; (2) tüketici grupları ve <code>XAUTOCLAIM</code> çöken tüketicinin işini başkasına devreder; (3) gecikme milisaniye altı, saniyede on binlerce ileti; (4) öncelik ayrı akışlarla ifade edilir. Eksikleri bilinçle telafi edilir: Streams'te gecikmeli teslim yoktur → <em>gecikmeli kuyruk</em> ZSET + taşıyıcı ile; kalıcılık AOF <code>everysec</code> olduğundan olası kayıp ≤ 1 sn → <strong>iş kaynağı her zaman veri tabanıdır</strong> (outbox, <code>grading_submissions.status</code>, <code>submissions.status</code>): kayıp bir ileti, durumu <code>queued</code> kalan satırı yeniden kuyruğa alan <em>kurtarma taraması</em> (her dakika) ile geri gelir.</p><p>Dört ilke tüm kuyruklar için geçerlidir: <strong>en az bir kez teslim</strong> (tüketici idempotent olmak zorundadır); <strong>iş son tarihi</strong> (her ileti <code>deadlineMs</code> taşır; süresi geçmiş işi çalıştırmak yerine başarısız sayılır); <strong>adalet</strong> (oyuncu başına eşzamanlı iş sınırı, tek oyuncu havuzu dolduramaz); <strong>geri basınç</strong> (kuyruk gecikmesi eşiği aşınca yeni <em>düşük öncelikli</em> iş kabul edilmez, etkileşimli iş sonuna kadar kabul edilir).</p>
+<h4 id="b7-7-2-kuyruk-katalogu">7.2 Kuyruk kataloğu</h4>
+<div class="tablewrap"><table><thead><tr><th>Kuyruk</th><th>Akışlar (Redis)</th><th>Üretici → tüketici</th><th>Yük (özet)</th><th>Eşzamanlılık</th><th>Hedef (gecikme)</th><th class="num">Zaman aşımı</th></tr></thead><tbody><tr><td class="nw"><code>code-run</code></td><td><code>q:code-run:p0</code> (etkileşimli), <code>q:code-run:p1</code> (toplu); sonuç <code>q:code-run:results</code></td><td><code>api</code> (Challenge) / <code>worker</code> (income) → <code>sandbox-agent</code>; sonuç → <code>worker</code> (result handler)</td><td><code>{jobId, kind, challengeId, source|peRef, tests, limits, nonce}</code></td><td>Düğüm başına ısıtılmış havuz kadar (8–10)</td><td>p0: kuyrukta ≤ 1 sn, uçtan uca p95 &lt; 6 sn (KANON); p1: ≤ 5 dk</td><td class="num">10 sn duvar saati (KANON) + 2 sn pay</td></tr><tr><td class="nw"><code>ai-grade</code></td><td><code>q:ai-grade:p0</code> (ders/Savunma/itiraz), <code>q:ai-grade:p1</code> (Batch sonuçları, toplu)</td><td><code>api</code>/<code>worker</code> → <code>worker</code> (AI hattı)</td><td><code>{submissionId, stage}</code></td><td>Model başına köprü: Haiku 128, Sonnet 64, Opus 16 (hız sınırına göre ayarlı)</td><td>p95 &lt; 4 sn (VİZYON)</td><td class="num">25 sn (Opus ikinci okuma dâhil)</td></tr><tr><td class="nw"><code>income-tick</code></td><td><code>q:income-tick:p0</code> (kod güncellemesi sonrası yeniden hesap), <code>q:income-tick:p1</code> (gece partileri, rollover)</td><td>cron / <code>worker</code> → <code>worker</code></td><td><code>{kind:"RunBusinesses"|"Recompute"|"Rollover", day, range|businessId}</code></td><td class="nw">4</td><td>Gece pencere 03:00–04:00 TR'de bitmeli</td><td class="num">5 dk (parti başına)</td></tr><tr><td class="nw"><code>notification</code></td><td><code>q:notification:p0</code> (anlık: veli SMS hatırlatma, güvenlik), <code>q:notification:p1</code> (Web Push, gelen kutusu)</td><td>olay işleyicileri → <code>worker</code></td><td><code>{playerId, kind, payload, coalesceKey}</code></td><td class="nw">32</td><td>p0 ≤ 5 sn; p1 ≤ 60 sn</td><td class="num">10 sn</td></tr><tr><td class="nw"><code>moderation</code></td><td><code>q:moderation:p0</code> (takma ad / işletme adı, kayıt akışını bloklar), <code>q:moderation:p1</code> (sohbet sonrası inceleme, şikâyet toplama)</td><td><code>api</code>/<code>hub</code> → <code>worker</code> (Haiku)</td><td><code>{kind, subjectId, text, locale}</code></td><td class="nw">32</td><td>p0 ≤ 1,5 sn; p1 ≤ 10 sn</td><td class="num">8 sn</td></tr><tr><td class="nw"><code>privacy</code></td><td class="nw"><code>q:privacy:p1</code></td><td>cron / <code>api</code> → <code>worker</code></td><td><code>{requestId, kind:"export"|"erasure"}</code></td><td class="nw">2</td><td>24 saat içinde (yasal 30 gün)</td><td class="num">30 dk</td></tr><tr><td><code>outbox</code> (kuyruk değil, röle)</td><td class="nw">—</td><td><code>platform.outbox_messages</code> → olay işleyicileri</td><td>alan olayları</td><td>8 bölüm anahtarlı (<code>aggregate</code>)</td><td>≈ 50 ms</td><td class="num nw">—</td></tr></tbody></table></div><p><strong>OTP gönderimi kuyruğa girmez.</strong> Girişin kritik yolu olduğundan <code>api</code> içinde <em>senkron</em>, 2 sn zaman aşımı ve devre kesiciyle çağrılır; birincil sağlayıcı hata/zaman aşımı verirse aynı istekte yedek sağlayıcıya geçilir (§11.2). Yalnızca veli hatırlatma SMS'leri <code>notification:p0</code>'dan gider.</p><p><strong>İleti zarfı.</strong> Her akış girdisi tek alan taşır: <code>env</code> = zarf JSON'u.</p><pre class="code" data-lang="json"><code>{ "messageId": "0193a4e0-0b22-7c33-8d44-5e66f7a8b9c0", "type": "code-run/tests", "idempotencyKey": "run:0193a4e0-0b22-7c33-8d44-5e66f7a8b9c0",
+  "attempt": 0, "enqueuedAtMs": 1730582043200, "deadlineMs": 1730582055200,
+  "payload": { "challengeId": "otopark-L1", "challengeVersion": 2, "submissionId": "0193a4e0-0b22-7c33-8d44-5e66f7a8b9c0" } }</code></pre>
+<h4 id="b7-7-3-yeniden-deneme-olu-mektup-ve-oncelik">7.3 Yeniden deneme, ölü mektup ve öncelik</h4>
+<div class="tablewrap"><table><thead><tr><th>Deneme</th><th class="num">Gecikme (±%20 jitter)</th><th>Not</th></tr></thead><tbody><tr><td>1 → 2</td><td class="num">2 sn</td><td>Geçici hatalar (ağ, 429, 5xx)</td></tr><tr><td>2 → 3</td><td class="num">4 sn</td><td class="nw"></td></tr><tr><td>3 → 4</td><td class="num">8 sn</td><td class="nw"></td></tr><tr><td>4 → 5</td><td class="num">16 sn</td><td class="nw"></td></tr><tr><td>5 → DLQ</td><td class="num">32 sn sonra son deneme; başarısızsa <code>q:{kuyruk}:dlq</code></td><td>Alarm: DLQ derinliği &gt; 0</td></tr></tbody></table></div><p>Kalıcı hata (şema ihlali, politika ihlali, <code>NotFound</code>) <em>yeniden denenmez</em>: tüketici <code>PermanentFailureException</code> fırlatır, ileti doğrudan DLQ'ya ya da duruma göre <code>failed</code> yazılarak kapanır. DLQ iletileri <code>platform.job_dead_letters</code>'a da kopyalanır ve yönetici paneli <code>POST /v1/admin/queues/{queue}/dead-letters/{id}/requeues</code> ile yeniden kuyruğa alır (denemeler sıfırlanır, <strong>idempotency anahtarı aynı</strong> kalır, böylece çift yan etki oluşmaz).</p><p><strong>Öncelik.</strong> p0 akışı p1'den önce okunur. Gündüz (06:00–24:00 TR) sandbox havuzunun en çok %50'si p1 için ayrılır, geri kalanı p0'a saklanır; gece (00:00–06:00) p1 tüm havuzu kullanır. Adalet: oyuncu başına en çok 2 eşzamanlı <code>code-run</code> (3. istek kuyrukta bekler, 429 değil) ve <code>RL-RUN</code> jeton kovası. Geri basınç: <code>q:code-run:p1</code> gecikmesi &gt; 5 dk ise yeni toplu iş üretilmez (gece partisi küçük dilimlere bölünür); <code>p0</code> gecikmesi &gt; 8 sn ise <code>api</code> yeni gönderimi <code>503 SANDBOX_BUSY</code> ile reddeder (nadir).</p><p><strong>İdempotency.</strong> Tüketici, yan etkisini yazdığı veri tabanı işleminde <code>platform.inbox_messages (consumer, message_id)</code> kaydını da ekler; çakışma = daha önce işlenmiş, iş atlanır. Yan etki doğal anahtara sahipse (defter, <code>xp_events</code>) inbox ek güvencedir. Sandbox işleri saf fonksiyondur (aynı kod + aynı girdi → aynı sonuç), tekrar çalıştırmak zararsızdır; sonuç işleyicisi <code>submissions.status</code> geçişini <code>UPDATE … WHERE status IN ('queued','running')</code> ile yaparak ikinci sonucu yok sayar.</p>
+<details class="acc"><summary id="b7-7-4-kuyruk-tuketici-tabani-c">7.4 Kuyruk tüketici tabanı (C#)</summary>
+<p>Tüm <code>worker</code> tüketicileri aynı tabanı kullanır: tüketici grubu okuması, <code>XAUTOCLAIM</code> ile çökmüş işi devralma, iş son tarihi, üstel geri çekilme, DLQ ve gecikmeli teslim taşıyıcısı.</p><pre class="code long" data-lang="cs" tabindex="0"><code>// [derlenir] StreamWorker.cs
+using System.Text.Json;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
+
+namespace KodKent.Platform.Queues;
+
+public sealed record Envelope(string MessageId, string Type, string IdempotencyKey, int Attempt, long EnqueuedAtMs, long DeadlineMs, JsonElement Payload);
+public sealed class PermanentFailureException(string message) : Exception(message);
+
+public abstract class StreamWorker(IConnectionMultiplexer redis, ILogger logger, string stream, string group, string consumer, int concurrency = 8) : BackgroundService
+{
+    static readonly int[] BackoffSec = [2, 4, 8, 16, 32];                       // 5 deneme sonra DLQ (§7.3)
+    static long Now() =&gt; DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+    /// &lt;summary&gt;İdempotent olmalı: en az bir kez teslim edilir.&lt;/summary&gt;
+    protected abstract Task HandleAsync(Envelope msg, CancellationToken ct);
+
+    public static Task EnqueueAsync(IDatabase db, string stream, Envelope env) =&gt;
+        db.StreamAddAsync(stream, "env", JsonSerializer.Serialize(env), maxLength: 100_000, useApproximateMaxLength: true);
+
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        var db = redis.GetDatabase();
+        try { await db.StreamCreateConsumerGroupAsync(stream, group, "$", createStream: true); }
+        catch (RedisServerException e) when (e.Message.StartsWith("BUSYGROUP")) { }
+
+        using var gate = new SemaphoreSlim(concurrency);
+        while (!ct.IsCancellationRequested)
+        {
+            // 1) Çöken tüketicilerden 30 sn'dir boşta bekleyen işleri devral
+            var claimed = await db.StreamAutoClaimAsync(stream, group, consumer, 30_000, "0-0", count: 16);
+            foreach (var e in claimed.ClaimedEntries) { await gate.WaitAsync(ct); _ = ProcessAsync(db, e, gate, ct); }
+
+            // 2) Yeni işler (Redis Streams'te XREADGROUP BLOCK SE.Redis'te yok: kısa yoklama, boşta 25 ms)
+            var entries = await db.StreamReadGroupAsync(stream, group, consumer, "&gt;", count: Math.Min(16, concurrency));
+            if (entries.Length == 0) { await Task.Delay(25, ct); continue; }
+            foreach (var e in entries) { await gate.WaitAsync(ct); _ = ProcessAsync(db, e, gate, ct); }
+        }
+    }
+
+    async Task ProcessAsync(IDatabase db, StreamEntry entry, SemaphoreSlim gate, CancellationToken ct)
+    {
+        Envelope? env = null;
+        try
+        {
+            env = JsonSerializer.Deserialize&lt;Envelope&gt;((string)entry["env"]!)!;
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromMilliseconds(Math.Max(1, env.DeadlineMs - Now())));      // iş son tarihi
+            await HandleAsync(env, cts.Token);
+            await db.StreamAcknowledgeAsync(stream, group, entry.Id);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            logger.LogWarning(ex, "iş başarısız {Stream} {Id} deneme={Attempt}", stream, entry.Id, env?.Attempt);
+            await RetryOrDeadLetterAsync(db, entry, env, ex);
+        }
+        finally { gate.Release(); }
+    }
+
+    async Task RetryOrDeadLetterAsync(IDatabase db, StreamEntry entry, Envelope? env, Exception ex)
+    {
+        if (env is null || ex is PermanentFailureException || env.Attempt &gt;= BackoffSec.Length)
+        {
+            await db.StreamAddAsync($"{stream}:dlq", [new NameValueEntry("env", (string?)entry["env"]), new NameValueEntry("error", ex.Message)]);
+        }
+        else
+        {
+            var next = env with { Attempt = env.Attempt + 1 };
+            double delayMs = BackoffSec[env.Attempt] * 1000.0 * (0.8 + Random.Shared.NextDouble() * 0.4);   // ±%20 jitter
+            var member = JsonSerializer.Serialize(new { stream, env = JsonSerializer.Serialize(next) });
+            await db.SortedSetAddAsync("q:delayed", member, Now() + delayMs);                        // gecikmeli teslim
+        }
+        await db.StreamAcknowledgeAsync(stream, group, entry.Id);
+    }
+}
+
+/// &lt;summary&gt;Gecikmeli kuyruktaki vadesi gelen işleri atomik olarak ilgili akışa taşır.&lt;/summary&gt;
+public sealed class DelayMover(IConnectionMultiplexer redis) : BackgroundService
+{
+    const string Script = """
+        local due = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, 200)
+        for _, m in ipairs(due) do
+          local e = cjson.decode(m)
+          redis.call('XADD', e.stream, 'MAXLEN', '~', 100000, '*', 'env', e.env)
+          redis.call('ZREM', KEYS[1], m)
+        end
+        return #due
+        """;
+
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        var db = redis.GetDatabase();
+        while (!ct.IsCancellationRequested)
+        {
+            await db.ScriptEvaluateAsync(Script, [new RedisKey("q:delayed")], [DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()]);
+            await Task.Delay(250, ct);
+        }
+    }
+}</code></pre>
+</details>
+<h4 id="b7-7-5-zamanlanmis-isler-cron-servisi">7.5 Zamanlanmış işler (cron servisi)</h4>
+<p>Zamanlayıcı, <code>worker</code> pod'larından <strong>yalnızca birinde</strong> çalışır: lider, <code>pg_try_advisory_lock(hashtext('kodkent-cron'))</code> ile seçilir, kilidi kaybeden pod bırakır. <code>platform.scheduled_jobs</code> son/sonraki çalışma zamanını tutar; cron ifadeleri <strong>Europe/Istanbul</strong> saat dilimindedir (UTC+3 kalıcı). Zamanlayıcı iş <em>yapmaz</em>, ilgili kuyruğa ileti bırakır; böylece iş yeniden denenebilir ve ölçeklenebilir.</p><div class="tablewrap"><table><thead><tr><th>İş</th><th>Zaman (TR)</th><th>Ne yapar</th><th>Kuyruk</th></tr></thead><tbody><tr><td><code>ai-nightly-batch</code></td><td class="nw">02:00</td><td><code>deferred_quota</code> cevaplarından Batch API isteği kurar, 5 dk'da bir izler, bitince sonuçları işler</td><td class="nw"><code>ai-grade:p1</code></td></tr><tr><td class="nw"><code>income-nightly</code></td><td class="nw">03:00</td><td>Açık/Deneme işletmeleri 500'lük dilimlere böler; her dilim için trafik üretir, <code>code-run:p1</code> işleri bırakır</td><td class="nw"><code>income-tick:p1</code></td></tr><tr><td><code>rollover-business-day</code></td><td class="nw">04:00</td><td>Kasa hızlarını yeni günün <code>daily_bayt</code>'ına çevirir (toplu SQL), günlük sınırları sıfırlar (HB 3, kod okuma 3, Alkış 40 B), seri denetimi</td><td class="nw"><code>income-tick:p1</code></td></tr><tr><td><code>ledger-reconcile</code></td><td class="nw">05:00</td><td>Defter mutabakatı (§9.6); fark varsa P1 alarmı</td><td class="nw">doğrudan</td></tr><tr><td><code>ledger-digest-seal</code></td><td class="nw">05:30</td><td>Günün hash özetini zincire ekler, WORM depoya yazar</td><td class="nw">doğrudan</td></tr><tr><td><code>meydan-question</code></td><td>her saat başı</td><td>Meydan Sorusu seçer, <code>scene.event</code> yayar</td><td><code>notification:p1</code></td></tr><tr><td><code>cadde-rotation</code>, <code>led-feed-refresh</code></td><td>her saat başı</td><td>Ana Cadde öne çıkan işletmeler (B1 <code>CADDE_ARSASI</code>), LED pano karışımı</td><td class="nw">—</td></tr><tr><td class="nw"><code>pazar-rotation</code></td><td>Pazartesi 09:00</td><td>Haftalık raf rotasyonu (B1 <code>PAZAR_ROTATION_TIME</code>), numaralı seri sayaçları</td><td class="nw">—</td></tr><tr><td class="nw"><code>league-close</code></td><td>Pazar 21:00</td><td>Lig kapanışı: sıralama, terfi/düşme, ödüller (<code>LEAGUE_REWARD</code>), Bildirim</td><td class="nw"><code>income-tick:p1</code></td></tr><tr><td><code>guardian-expire</code>, <code>guardian-reminders</code></td><td>15 dk / saat başı</td><td>72 saati dolan onayları kapat; 24. ve 48. saatte hatırlatma SMS'i</td><td><code>notification:p0</code></td></tr><tr><td class="nw"><code>shard-janitor</code></td><td>her dakika</td><td>Süresi dolmuş rezervasyonlar, <code>draining</code> shard'ların kapanışı, ölü pod shard'ları</td><td class="nw">—</td></tr><tr><td class="nw"><code>recover-queued</code></td><td>her dakika</td><td><code>queued</code> kalmış <code>submissions</code>/<code>grading_submissions</code> satırlarını yeniden kuyruğa al</td><td class="nw">ilgili</td></tr><tr><td><code>partition-manager</code>, <code>retention-sweeper</code></td><td class="nw">03:30</td><td>Gelecek ay bölümleri; saklama süresi dolan veriyi sil (§11.7)</td><td class="nw"><code>privacy:p1</code></td></tr><tr><td><code>erasure-executor</code>, <code>export-builder</code></td><td>saat başı</td><td>Bekleme süresi dolan silmeleri uygula; indirme paketlerini hazırla</td><td class="nw"><code>privacy:p1</code></td></tr><tr><td><code>idempotency-cleanup</code></td><td>saat başı</td><td>24 saati geçen <code>idempotency_keys</code>; 90 gün geçen <code>otp_challenges</code></td><td class="nw">—</td></tr><tr><td class="nw"><code>economy-rollup</code></td><td class="nw">06:00</td><td><code>daily_economy_stats</code>, KPI günlük özetleri (B2 §10.5 metrikleri)</td><td class="nw">—</td></tr></tbody></table></div>
+<h4 id="b7-7-6-gece-isletme-partisi-zaman-cizelgesi">7.6 Gece işletme partisi: zaman çizelgesi</h4>
+<p>Gece partisi, sandbox'ı en çok yoran iştir ve <em>sabit bir pencerede bitmek</em> zorundadır, çünkü sabah 04:00'te kasa hızları yeni güne geçer.</p><div class="tablewrap"><table><thead><tr><th>Saat (TR)</th><th>Olay</th><th class="num">Süre bütçesi</th></tr></thead><tbody><tr><td class="nw">02:00</td><td>AI Batch gönderimi (kota aşan cevaplar)</td><td class="num nw">—</td></tr><tr><td class="nw">03:00</td><td><code>income-nightly</code> dilimleri kuyruğa girer; her işletme için trafik (deterministik tohum, §9.1) üretilir, <strong>saklı PE</strong> ile <code>code-run:p1</code> işi bırakılır (yeniden derleme yok)</td><td class="num">5 dk</td></tr><tr><td class="nw">03:05–03:45</td><td>Sandbox havuzu yalnızca p1 işler: iş başına ≈ 0,3–0,6 sn (yükleme + 12–50 çağrı). 1k DAU: 800 iş ≈ 3 dk · 10k: 8.000 iş ≈ 11 dk · 100k: 80.000 iş ≈ 17 dk (planlama değeri 2 CPU-sn/iş ve §8.9 havuz boyutuyla)</td><td class="num">40 dk</td></tr><tr><td class="nw">03:45–03:55</td><td>Sonuç işleyici: referans tavanı uygulanır (<code>min(oyuncu, referans)</code>), <code>business_runs</code> yazılır, şikâyet balonları üretilir</td><td class="num">10 dk</td></tr><tr><td class="nw">04:00</td><td><code>rollover-business-day</code>: kasa hızları toplu SQL ile güncellenir (<code>UPDATE … FROM business_runs</code>), önce eski hızla <em>settle</em> edilir</td><td class="num">1 dk</td></tr><tr><td class="nw">04:01</td><td>Eksik kalan işletmeler (zaman aşımı, kuyrukta kalan) <strong>önceki günün hızıyla</strong> devam eder; artık sonuç gelirse <code>revision</code> +1 ile ileri dönük uygulanır</td><td class="num nw">—</td></tr></tbody></table></div>
+</section>
